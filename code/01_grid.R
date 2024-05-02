@@ -11,13 +11,13 @@ library(leafem)
 library(dplyr)
 library(units)
 
+git config --global user.name "tati-valenca"
+
 
 ###Prepare the grids
 
 #Obs: grid_id correspond to original grid numbers
 
-# Set the working directory
-# setwd("C:/Users/tativ/OneDrive/Doutorado_Spatial data/Terrestriality and tool use/grid_110m/")
 
 #Read the shapefile
 grid_110m <- st_read("data/grid_110m/grid_110m.shp")
