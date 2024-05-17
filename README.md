@@ -9,7 +9,7 @@ This is a description of the data files in this repo.
   - rio? but not direct, for prediction not causal
   
 2. What are the causes of terrestriality in capuchins?
- - tree density (oveall trees)
+ - tree density (overall trees)
  - distance to river
  - stone tool use
 

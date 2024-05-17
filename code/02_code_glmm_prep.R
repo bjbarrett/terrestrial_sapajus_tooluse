@@ -1,6 +1,5 @@
 library(lubridate)
 library(rethinking)
-set_ulam_cmdstan(TRUE) #set cmdstan to true
 # collate dataframe
 # number of tool use events in a cell (22m or 110m) per individual per day
 # hours spent following an indivdual ona a given day
@@ -65,28 +64,6 @@ data_list <- list(
 
 rpois(n=1000 , lambda=2 )
 simplehist(rpois(n=10000 , lambda=mean(exp(post$al)) ) )
-m0 <- ulam(
-  alist(
-    nutcrackin ~ binomial(1,p),
-    logit(p) <- ap ,
-    ap ~ dnorm( 0 , 1 )
-    ) , data=data_list , chains=4)
-
-# to go from probability to log-odds use logit link 
-logit(.99)
-# to go from log-odds to proability/real scale use
-logistic(.99)
-inv_logit(.99)
-
-post <- extract.samples(m0)
-str(post)
-dens(post$ap) #log odds scale
-dens(logistic(post$ap)) #log odds scale
-abline(v=mean(logistic(post$ap)))
-precis( m0 ) # real probability scale
-inv_logit(-1.27)
-mean(focals_data_cropped$nutcrackin)
-
 
 ###what cuses terrestriality
 str(grid_22m)
@@ -94,6 +71,68 @@ str(focals_data_cropped)
 focals_data_cropped$corresponding_cell_id
 grid_22m$cell_id
 
+str(focals_data_cropped)
+str(grid_22m)
+
 joined_df <- merge(focals_data_cropped,grid_22m, by.x = "corresponding_cell_id", 
                   by.y = "cell_id", all.x = TRUE, all.y = FALSE)
+ab<-union(focals_data_cropped, grid_22m)
+g22df <- as.data.frame(grid_22m)
+fdcdf <- as.data.frame(focals_data_cropped)
+joined_df <- merge(fdcdf,g22df, by.x = "corresponding_cell_id", 
+                   by.y = "cell_id", all.x = TRUE, all.y = FALSE)
+str(joined_df)
+joined_df$id <- as.integer(as.factor(joined_df$individual))
+joined_df$log_average_stone <- log(joined_df$average_stone)
+data_list_daily <- list(
+  nutcrackin = joined_df$nutcrackin,
+  id = joined_df$id,
+  avg_stone = joined_df$average_stone, #average stones in big grid
+  count_palm = joined_df$count_palm_trees, #palms in 22m grid
+  avg_stone_std = standardize(joined_df$average_stone), #average stones in big grid
+  log_avg_stone_std = standardize(joined_df$log_average_stone), #log average stones in big grid
+  count_palm_std = standardize(joined_df$count_palm_trees) #palms in 22m grid
+)
 
+dens(joined_df$count_palm_trees)
+dens(joined_df$average_stone)
+
+m1ZIP <- ulam(
+  alist(
+    nutcrackin ~ dzipois( p , lambda ),
+    logit(p) <- ap + a_id[id,1],
+    log(lambda) <- al + a_id[id,2],
+    # adaptive priors - non-centered
+    transpars> matrix[id,2]:a_id <-
+      compose_noncentered( sigma_id , L_Rho_id , z_id ),
+    matrix[2,id]:z_id ~ normal( 0 , 1 ),
+    # fixed priors
+    ap ~ dnorm( 0 , 1 ),
+    al ~ dnorm( 0 , 2 ),
+    vector[2]:sigma_id ~ dexp(1),
+    cholesky_factor_corr[2]:L_Rho_id ~ lkj_corr_cholesky( 3 ),
+    # compute ordinary correlation matrixes from Cholesky factors
+    gq> matrix[2,2]:Rho_id <<- Chol_to_Corr(L_Rho_id)
+
+  ) , data=data_list_daily , chains=4 , cores=4 , log_lik=TRUE)
+
+plot(precis( m1ZIP , depth=2 ))
+plot(precis( m1ZIP , depth=3 , pars='a_id' ))
+plot(precis( m1ZIP , depth=3 , pars='L_Rho_id' ))
+
+####causes of terrestriality
+
+str(heights_data)
+heights_data$height
+heights_data$id <- as.integer(as.factor(heights_data$individual))
+heights_data$follow_index <- as.integer(as.factor(heights_data$focal))
+heights_data$day_index <- as.integer(as.factor(date(heights_data$timestamp)))
+
+data_list_height <- list(
+  height_dm=heights_data$height*10,
+  height_m=heights_data$height,
+  nutcrackin=heights_data$nutcracking,
+  id = heights_data$id,
+  follow_index = heights_data$follow_index,
+  day_index = heights_data$day_index
+)

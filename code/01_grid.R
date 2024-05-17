@@ -11,7 +11,7 @@ library(leafem)
 library(dplyr)
 library(units)
 
-git config --global user.name "tati-valenca"
+#git config --global user.name "tati-valenca"
 
 
 ###Prepare the grids
