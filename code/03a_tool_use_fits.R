@@ -105,6 +105,7 @@ precis( m6 , depth=2 )
 compare(m1,m2,m3,m4,m5,m6)
 
 ######### varying effects of slopes per individual
+set.seed(384)
 m7 <- ulam(
   alist(
     nutcrackin ~ dbinom(1, p ),
@@ -116,14 +117,15 @@ m7 <- ulam(
     # fixed priors
     c(ap,bPT) ~ dnorm( 0 , 1 ),
     vector[2]:sigma_id ~ dexp(1),
-    cholesky_factor_corr[2]:L_Rho_id ~ lkj_corr_cholesky( 3 ),
+    cholesky_factor_corr[2]:L_Rho_id ~ lkj_corr_cholesky( 4 ),
     # compute ordinary correlation matrixes from Cholesky factors
     gq> matrix[2,2]:Rho_id <<- Chol_to_Corr(L_Rho_id)
     
-  ) , data=data_list_daily , chains=4 , cores=4 , log_lik=TRUE)
+  ) , data=data_list_daily , chains=4 , cores=16 , threads=16 , log_lik=FALSE, pars_omit = 'z_id')
 
 precis(m7 , depth=3)
 
+set.seed(482)
 m8 <- ulam(
   alist(
     nutcrackin ~ dbinom(1, p ),
@@ -139,10 +141,11 @@ m8 <- ulam(
     # compute ordinary correlation matrixes from Cholesky factors
     gq> matrix[2,2]:Rho_id <<- Chol_to_Corr(L_Rho_id)
     
-  ) , data=data_list_daily , chains=4 , cores=4 , log_lik=TRUE)
+  ) , data=data_list_daily , chains=4 , cores=16 , threads=16, log_lik=FALSE, pars_omit = 'z_id')
 
 precis(m8 , depth=3)
 
+set.seed(183)
 m9 <- ulam(
   alist(
     nutcrackin ~ dbinom(1, p ),
@@ -158,11 +161,11 @@ m9 <- ulam(
     # compute ordinary correlation matrixes from Cholesky factors
     gq> matrix[3,3]:Rho_id <<- Chol_to_Corr(L_Rho_id)
     
-  ) , data=data_list_daily , chains=4 , cores=4 , log_lik=TRUE)
+  ) , data=data_list_daily , chains=4 , cores=16 , threads=16 , log_lik=FALSE, pars_omit = 'z_id')
 
 precis(m9 , depth=3)
 
-
+set.seed(345)
 m10 <- ulam(
   alist(
     nutcrackin ~ dbinom(1, p ),
@@ -179,14 +182,15 @@ m10 <- ulam(
     # compute ordinary correlation matrixes from Cholesky factors
     gq> matrix[4,4]:Rho_id <<- Chol_to_Corr(L_Rho_id)
     
-  ) , data=data_list_daily , chains=4 , cores=4 , log_lik=TRUE)
+  ) , data=data_list_daily , chains=4 , cores=16 , threads=16 , log_lik=FALSE, pars_omit = 'z_id')
 
 
 precis(m10 , depth=3)
 plot(precis(m10 , depth=2))
 precis(m10 , depth=3 , pars="Rho_id")
+plot(precis(m10 , depth=3 , pars="a_id"))
 
-compare(m1,m2,m3,m4,m5,m6,m7,m8,m9,m10)
+#compare(m1,m2,m3,m4,m5,m6,m7,m8,m9,m10)
 
 ##plot preds stones
 a_id_z <- matrix(0,2000,length(unique(data_list_daily$id))) #need to add zeros in VE to plot main effect
@@ -236,7 +240,7 @@ plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
      xlab= "palm tree density/ 22 m^2 grid (standardized)")
 
 palm_seq <-  seq(from=min(data_list_daily$count_palm_std) , 
-                  to=max(data_list_daily$count_palm_std) , length=30)
+                 to=max(data_list_daily$count_palm_std) , length=30)
 dpred <- list(
   id=rep(1,30), #list of ones we will replace
   log_avg_stone_std=rep(0,30),
@@ -276,3 +280,98 @@ for ( i in 1:max(data_list_daily$id)){
 
 post <- extract.samples(m10)
 str(post)
+
+
+##### lets vctorize ST abundance
+
+
+
+m8me <- ulam(
+  alist(
+    #stone model
+    stone_raw_grid ~ dpois( lambda ), #define poisson likelihood
+    log(lambda) <-  a_bar + a_grid[stone_grid_index],
+    #priors
+    a_bar ~ dnorm( 3 , 2 ), #mean effect on logscale
+    a_grid[stone_grid_index] ~ dnorm( 0 , sigma_stone ), #priovarying effects centered on mean
+    sigma_stone ~ dexp(1), #p
+   #nutcracking model
+    nutcrackin ~ dbinom(1, p ),
+    logit(p) <-ap + a_id[id,1] +  (bS + a_id[id,2])*a_grid[grid_id_follow] , #use the posterior of corresponding grid as predictor
+    # adaptive priors - non-centered
+    transpars> matrix[id,2]:a_id <-
+      compose_noncentered( sigma_id , L_Rho_id , z_id ),
+    matrix[2,id]:z_id ~ normal( 0 , 1 ),
+    # fixed priors
+    c(ap,bS) ~ dnorm( 0 , 1 ),
+    vector[2]:sigma_id ~ dexp(1),
+    cholesky_factor_corr[2]:L_Rho_id ~ lkj_corr_cholesky( 3 ),
+    # compute ordinary correlation matrixes from Cholesky factors
+    gq> matrix[2,2]:Rho_id <<- Chol_to_Corr(L_Rho_id)
+    
+  ) , data=data_list_daily , chains=4 , cores=4, log_lik=FALSE, pars_omit = 'z_id' , iter=4000 , control=list(adapt_delta=0.99))
+
+precis(m8me , depth=3)
+plot(precis(m8me , depth=2))
+
+set.seed(183)
+m9me <- ulam(
+  alist(
+    #stone model
+    stone_raw_grid ~ dpois( lambda ), #define poisson likelihood
+    log(lambda) <-  a_bar + a_grid[stone_grid_index],
+    #priors
+    a_bar ~ dnorm( 3 , 2 ), #mean effect on logscale
+    a_grid[stone_grid_index] ~ dnorm( 0 , sigma_stone ), #priovarying effects centered on mean
+    sigma_stone ~ dexp(1), #p
+    #nutcracking model
+    nutcrackin ~ dbinom(1, p ),
+    logit(p) <-ap + a_id[id,1] +  (bS + a_id[id,2])*a_grid[grid_id_follow] +  (bPT + a_id[id,3])*count_palm_std,
+    # adaptive priors - non-centered
+    transpars> matrix[id,3]:a_id <-
+      compose_noncentered( sigma_id , L_Rho_id , z_id ),
+    matrix[3,id]:z_id ~ normal( 0 , 1 ),
+    # fixed priors
+    c(ap,bS,bPT) ~ dnorm( 0 , 1 ),
+    vector[3]:sigma_id ~ dexp(1),
+    cholesky_factor_corr[3]:L_Rho_id ~ lkj_corr_cholesky( 3 ),
+    # compute ordinary correlation matrixes from Cholesky factors
+    gq> matrix[3,3]:Rho_id <<- Chol_to_Corr(L_Rho_id)
+    
+  ) , data=data_list_daily , chains=4 , cores=4, log_lik=FALSE, iter=4000,  pars_omit = 'z_id' , control=list(adapt_delta=0.99))
+
+precis(m9me , depth=3)
+plot(precis(m9me , depth=2))
+
+set.seed(345)
+m10me <- ulam(
+  alist(
+    #stone model
+    stone_raw_grid ~ dpois( lambda ), #define poisson likelihood
+    log(lambda) <-  a_bar + a_grid[stone_grid_index],
+    #priors
+    a_bar ~ dnorm( 3 , 2 ), #mean effect on logscale
+    a_grid[stone_grid_index] ~ dnorm( 0 , sigma_stone ), #priovarying effects centered on mean
+    sigma_stone ~ dexp(1), #p
+    #nutcracking model
+    nutcrackin ~ dbinom(1, p ),
+    logit(p) <-ap + a_id[id,1] +  (bS + a_id[id,2])*a_grid[grid_id_follow] +
+      (bPT + a_id[id,3])*count_palm_std + (bPTxS + a_id[id,4])*a_grid[grid_id_follow]*count_palm_std,
+    # adaptive priors - non-centered
+    transpars> matrix[id,4]:a_id <-
+      compose_noncentered( sigma_id , L_Rho_id , z_id ),
+    matrix[4,id]:z_id ~ normal( 0 , 1 ),
+    # fixed priors
+    c(ap,bS,bPT,bPTxS) ~ dnorm( 0 , 1 ),
+    vector[4]:sigma_id ~ dexp(1),
+    cholesky_factor_corr[4]:L_Rho_id ~ lkj_corr_cholesky( 3 ),
+    # compute ordinary correlation matrixes from Cholesky factors
+    gq> matrix[4,4]:Rho_id <<- Chol_to_Corr(L_Rho_id)
+    
+  ) , data=data_list_daily , chains=4 , cores=4, log_lik=FALSE, iter=4000, pars_omit = 'z_id' , control=list(adapt_delta=0.99))
+
+
+precis(m10me , depth=3)
+plot(precis(m10me , depth=2))
+precis(m10me , depth=3 , pars="Rho_id")
+plot(precis(m10me , depth=3 , pars="a_id"))

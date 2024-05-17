@@ -27,7 +27,7 @@ heights_data$date <- date(heights_data$timestamp) #create dates
 temp <- aggregate(minute ~ individual + date + focal, heights_data, length) # number of nutcracks per individual across all of data
 temp$minutes_followed <- temp$minute - 1 # ges=ts rid of zero issues
 hist(temp$minutes_followed) #there is a duplicated follow, check up on it
- ### STOPPING HERE need to get dataframes to talk and run first model
+### STOPPING HERE need to get dataframes to talk and run first model
 
 # temp[which(temp$minutes_followed > 5),]
 
@@ -74,9 +74,9 @@ grid_22m$cell_id
 str(focals_data_cropped)
 str(grid_22m)
 
-joined_df <- merge(focals_data_cropped,grid_22m, by.x = "corresponding_cell_id", 
-                  by.y = "cell_id", all.x = TRUE, all.y = FALSE)
-ab<-union(focals_data_cropped, grid_22m)
+# joined_df <- merge(focals_data_cropped,grid_22m, by.x = "corresponding_cell_id", 
+#                   by.y = "cell_id", all.x = TRUE, all.y = FALSE)
+# ab<-union(focals_data_cropped, grid_22m)
 g22df <- as.data.frame(grid_22m)
 fdcdf <- as.data.frame(focals_data_cropped)
 joined_df <- merge(fdcdf,g22df, by.x = "corresponding_cell_id", 
@@ -84,15 +84,99 @@ joined_df <- merge(fdcdf,g22df, by.x = "corresponding_cell_id",
 str(joined_df)
 joined_df$id <- as.integer(as.factor(joined_df$individual))
 joined_df$log_average_stone <- log(joined_df$average_stone)
+
+##### add in raw stones
+
+raw_stones <- read.csv("data/raw_stones_subplots.csv")
+raw_stones$rawstones_count_subplot
+str(raw_stones)
+dens(raw_stones$rawstones_count_subplot)
+raw_stones$rawstones_count_subplot
+mean(raw_stones$rawstones_count_subplot)
+for(i in 1:max(raw_stones$grid_id)){
+  dens(raw_stones$rawstones_count_subplot[raw_stones$grid_id==i])
+  #points(rep(0,3) , raw_stones$rawstones_count_subplot[raw_stones$grid_id==i])
+  points( raw_stones$rawstones_count_subplot[raw_stones$grid_id==i] , rep(0,3) )
+}
+
+set.seed(942)
+
+mstones<- ulam(
+  alist(
+    rawstones_count_subplot ~ dpois( lambda ), #define poisson likelihood
+    log(lambda) <-  a_bar + a_grid[grid_id],
+    #priors
+    a_bar ~ dnorm( 3 , 2 ), #mean effect on logscale
+    a_grid[grid_id] ~ dnorm( 0 , sigma_stone ), #priovarying effects centered on mean
+    sigma_stone ~ dexp(1) #p
+  ), data=raw_stones , chains=4, cores=4, control=list(adapt_delta=0.999) , iter=10000)
+
+# mstones2<- ulam(
+#   alist(
+#     rawstones_count_subplot ~ dpois( lambda ), #define poisson likelihood
+#     log(lambda) <-  a_bar + a_grid[grid_id],
+#     #priors
+#     a_bar ~ dnorm( 3 , 2 ), #mean effect on logscale
+#     a_grid[grid_id] ~ dnorm( 0 , 1 ) #priovarying effects centered on mean
+#     #sigma_stone ~ dexp(1) #p
+#   ), data=raw_stones , chains=4, cores=4, control=list(adapt_delta=0.999) , iter=10000)
+
+#look at prior predictive simulation of mean
+prior_samps <- extract_prior_ulam(mstones)
+dens(exp(prior_samps$a_bar))
+dens(exp(prior_samps$a_bar) , xlim=c(0,10000))
+
+#summary of ouputs
+precis(mstones , depth=2 , pars="a_grid")
+precis(mstones2 , depth=2 , pars="a_grid")
+
+plot(precis(mstones , depth=2 , pars='a_grid'))
+#plots preds per plot
+post <- extract.samples(mstones)
+
+str(post)
+#real scale
+for(i in 1:40){
+  dens(exp(post$a_grid[,i]) , xlim=range(raw_stones$rawstones_count_subplot) , main=i)
+  points( raw_stones$rawstones_count_subplot[raw_stones$grid_id==i] , rep(0,3) )
+}
+
+#link (log) scale
+for(i in 1:40){
+  dens(post$a_grid[,i] , main=i)
+  points( log(raw_stones$rawstones_count_subplot[raw_stones$grid_id==i] ), rep(0,3) )
+}
+
+#in stan i would model this jointly, but i will extract posterior mean and SD on log scale instead and feed that into the measurement error model
+# 
+# stone_precis <- as.data.frame(precis(mstones2 , depth=2 , pars="a_grid"))
+# stone_precis <- stone_precis[,1:2]
+# stone_precis$stone_post_index <- 1:40
+# names(stone_precis)[1:2] <- c("stone_post_mean" , "stone_post_sd")
+# merge
+# 
+# joined_df2 <- merge(joined_df,stone_precis, by.x = "grid_id", 
+#                    by.y = "stone_post_index", all.x = TRUE, all.y = FALSE)
+# plot(joined_df2$stone_post_mean ~ joined_df2$log_average_stone )
+
 data_list_daily <- list(
   nutcrackin = joined_df$nutcrackin,
   id = joined_df$id,
+  grid_id_follow = joined_df$grid_id,# real grid id from follow, mising cell 15 cause no monkeys went there
   avg_stone = joined_df$average_stone, #average stones in big grid
   count_palm = joined_df$count_palm_trees, #palms in 22m grid
   avg_stone_std = standardize(joined_df$average_stone), #average stones in big grid
   log_avg_stone_std = standardize(joined_df$log_average_stone), #log average stones in big grid
-  count_palm_std = standardize(joined_df$count_palm_trees) #palms in 22m grid
+  count_palm_std = standardize(joined_df$count_palm_trees), #palms in 22m grid
+  # stone_post_mean = stone_precis$stone_post_mean,
+  # stone_post_sd = stone_precis$stone_post_sd
+  # stone_post_mean = joined_df2$stone_post_mean,
+  # stone_post_sd = joined_df2$stone_post_sd,
+  # N=nrow(joined_df2)
+  stone_raw_grid = raw_stones$rawstones_count_subplot, # list of all stones, 3 observations per grid
+  stone_grid_index = raw_stones$grid_id # list of grid ids associated with observations
 )
+
 
 dens(joined_df$count_palm_trees)
 dens(joined_df$average_stone)
@@ -113,7 +197,7 @@ m1ZIP <- ulam(
     cholesky_factor_corr[2]:L_Rho_id ~ lkj_corr_cholesky( 3 ),
     # compute ordinary correlation matrixes from Cholesky factors
     gq> matrix[2,2]:Rho_id <<- Chol_to_Corr(L_Rho_id)
-
+    
   ) , data=data_list_daily , chains=4 , cores=4 , log_lik=TRUE)
 
 plot(precis( m1ZIP , depth=2 ))

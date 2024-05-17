@@ -242,3 +242,5 @@ mapview(grid_22m)
 mapview(grid_22m ) + mapview(focals_data_cropped , cex=0.5) +  mapview(nutcracking_data_cropped, col.regions ="red", cex=0.5) + mapview(palm_trees, col.regions = "green", cex=0.5)
 
 
+mapview(grid_110m ) +  mapview(nutcracking_data_cropped, col.regions ="red", cex=0.5)
+mapview(grid_110m ) +  mapview(focals_data_cropped , cex=0.5)
