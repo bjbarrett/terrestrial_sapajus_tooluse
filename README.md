@@ -8,6 +8,8 @@ This is a description of the data files in this repo.
   - stone availability
   - rio? but not direct, for prediction not causal
   
+Hypothesis: terrestriality influences where the monkeys use tools
+  
 2. What are the causes of terrestriality in capuchins?
  - tree density (overall trees)
  - distance to river

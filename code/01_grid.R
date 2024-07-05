@@ -238,7 +238,12 @@ mapview(grid_22m)
       #Step 6: Check whether the nutcracking points are showing the right corresponding grid cell
       mapview(grid_22m) + mapview(nutcracking_data_cropped)
       
-    
+      # Step 7: add mean tree and stone counts to 110m grid and 22m grid
+      grid_110m <- merge(grid_110m,average_stones_plot, duplicateGeoms = T)
+      grid_22m <- merge(grid_22m,average_stones_plot, duplicateGeoms = T)
+      
+      
+      
 mapview(grid_22m ) + mapview(focals_data_cropped , cex=0.5) +  mapview(nutcracking_data_cropped, col.regions ="red", cex=0.5) + mapview(palm_trees, col.regions = "green", cex=0.5)
 
 
