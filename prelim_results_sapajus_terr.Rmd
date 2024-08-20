@@ -1,0 +1,295 @@
+---
+title: "Terrestrial Sapajus"
+author: "Brendan Barrett and Tatiane Valença"
+date: "2024-06-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mapview)
+```
+
+## Creating a Grid and Visualizing Data
+
+```{r grid and date prep, echo=FALSE ,  results='hide', message=FALSE}
+source('code/01_grid.R')
+source('code/02_code_glmm_prep.R')
+
+```
+
+# Visualize Raw Data
+Below are mapview interactive maps of raw data
+```{r mapview}
+mapview(grid_110m , alpha.regions = 0.2, alpha = 1 , col.regions="darkgrey" ) + mapview(grid_22m , alpha.regions = 0.2, alpha = 1 , col.regions="grey") + mapview(focals_data_cropped , cex=2, zcol="nutcrackin") +  mapview(nutcracking_data_cropped, col.regions ="violet", cex=2 ) + mapview(palm_trees, col.regions = "green3", cex=2)
+
+mapview(focals_data_cropped , cex=2, zcol="individual")
+
+grid_110m
+
+mynewspdf <- merge(grid_110m,average_stones_plot, duplicateGeoms = T)
+
+```
+
+## 1. Do monkeys use tools more frequently in areas where they go more to the ground outside tool use context?
+  - terrest (out of context)
+  - palm density
+  - stone availability
+  - rio? but not direct, for prediction not causal
+  
+ For this, I will one model out of many I ran, that is the most complete and drives home the gist.
+ This gives similar results to one that accounts for the length of follow (i.e. 1 to 5 minutes), but we can wait till the the actual tool use rates per follow are calculated.
+ Essentially, this is a logistic GLMM that models the probability of using tools in a follow as predicted by empirical palm tree density in the 22m cell where the follow started (double check), the posterior density of mean stone density in the corresponding 110m cell, and an interaction between the 2.
+ 
+We estimated varying intercepts and slopes for all parameters for each individual capuchin.
+Stone density was models as a Poisson GLMM with a log link, where we estimated a unique varying intercept for each 110m grid cell.
+This estimate (or a centered version of it) gets passed to the main GLMM, so we can use the distribution of stones to inform the mean, rather than a single, overconfident point estimate.
+
+```{r intmodel}
+set.seed(345)
+m10me <- ulam(
+  alist(
+    #stone model
+    stone_raw_grid ~ dpois( lambda ), #define poisson likelihood
+    log(lambda) <-  a_bar + a_grid[stone_grid_index],
+    #priors
+    a_bar ~ dnorm( 3 , 2 ), #mean effect on logscale
+    a_grid[stone_grid_index] ~ dnorm( 0 , sigma_stone ), #priovarying effects centered on mean
+    sigma_stone ~ dexp(1), #p
+    #nutcracking model
+    nutcrackin ~ dbinom(1, p ),
+    logit(p) <-ap + a_id[id,1] +  (bS + a_id[id,2])*a_grid[grid_id_follow] +
+      (bPT + a_id[id,3])*count_palm_std + (bPTxS + a_id[id,4])*a_grid[grid_id_follow]*count_palm_std,
+    # adaptive priors - non-centered
+    transpars> matrix[id,4]:a_id <-
+      compose_noncentered( sigma_id , L_Rho_id , z_id ),
+    matrix[4,id]:z_id ~ normal( 0 , 1 ),
+    # fixed priors
+    c(ap,bS,bPT,bPTxS) ~ dnorm( 0 , 1 ),
+    vector[4]:sigma_id ~ dexp(1),
+    cholesky_factor_corr[4]:L_Rho_id ~ lkj_corr_cholesky( 3 ),
+    # compute ordinary correlation matrixes from Cholesky factors
+    gq> matrix[4,4]:Rho_id <<- Chol_to_Corr(L_Rho_id)
+    
+  ) , data=data_list_daily , chains=4 , cores=4, log_lik=FALSE, iter=4000, pars_omit = 'z_id' , control=list(adapt_delta=0.99))
+```
+  
+  Lets look at the parameter outputs.
+  First the main effects.
+  
+```{r intmodel summary}
+#precis(m10me)
+plot(precis(m10me))
+#hetergenity amongs grids in stones
+plot(precis(m10me , depth=3 , pars="a_grid"))
+
+```
+  Tree density has a reliable positive impact on the probability of using tools, whereas stone abundance has a small, unreliable positive impact on tool use. 
+  There is a weak interaction effect as well- places where there are more .
+  
+```{r main effects tree plot , echo=FALSE}
+a_grid_f_z <- matrix(0,2000,length(unique(data_list_daily$grid_id_follow))) #need to add zeros in VE to plot main effect
+a_grid_s_z <- matrix(0,2000,length(unique(data_list_daily$stone_grid_index))) #need to add zeros in VE to plot main effect
+
+# plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
+#      pch=19 , col=col.alpha("green4",0.004), ylab="probability of nut cracking",
+#      xlab= "palm tree density/ 22 m^2 grid (standardized)")
+# 
+# palm_seq <-  seq(from=min(data_list_daily$count_palm_std) , 
+#                  to=max(data_list_daily$count_palm_std) , length=30)
+# dpred <- list(
+#   id=rep(1,30), #list of ones we will replace
+#   count_palm_std=palm_seq,
+#   stone_grid_index=rep(1,30),
+#   grid_id_follow=rep(1,30)
+# )
+# 
+# link2 <- link(m10me, data=dpred , replace=list(id=a_id_z , stone_grid_index=a_grid_s_z , grid_id_follow=a_grid_f_z) )
+# pred_median <- apply(link2$p , 2 , median)
+# lines(pred_median ~ palm_seq , lw=2, col=1 , lty=1)
+# 
+# for (j in sample( c(1:2000) , 100) ){
+#   lines( link2$p[j,] ~ palm_seq , lw=3, col=col.alpha("green4", alpha=0.1) , lty=1)
+# }
+```
+```{r}
+post <- extract.samples(m10me)
+str(post)
+p_link_palm <- function(x){
+    scapula <- mean(post$a_grid)
+    id <- 1
+    logit_scale <- with(post , ap + a_id[,id,1]*0 +  (bS + a_id[,id,2])*scapula +
+      (bPT + a_id[,id,3]*0)*x + (bPTxS + a_id[,id,4]*0)*scapula*x )
+    return(logistic(logit_scale))
+}
+
+palm_seq <-  seq(from=min(data_list_daily$count_palm_std) , 
+                 to=max(data_list_daily$count_palm_std) , length=30)
+
+p_raw <- sapply( palm_seq, function(x) p_link_palm(x) )
+
+plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
+     pch=19 , col=col.alpha("green4",0.004), ylab="probability of nut cracking",
+     xlab= "palm tree density/ 22 m^2 grid (standardized)")
+
+pred_median <- apply(p_raw , 2 , median)
+lines(pred_median ~ palm_seq , lw=2, col=1 , lty=1)
+
+for (j in sample( c(1:2000) , 100) ){
+  lines( p_raw[j,] ~ palm_seq , lw=3, col=col.alpha("green4", alpha=0.1) , lty=1)
+}
+```
+
+We can also plot predictions of varying effects for all 17 individuals who used tools. 
+One of them does not like using tools.
+```{r}
+
+## per id plot
+plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
+     pch=19 , col=col.alpha("green4",0.004), ylab="probability of nut cracking",
+     xlab= "palm tree density/ 22 m^2 grid (standardized)")
+
+#lines(pred_median ~ palm_seq , lw=2, col=1 , lty=1)
+
+for ( i in 1:max(data_list_daily$id)){
+  dpred <- list(
+    id=rep(i,30), #list of ones we will replace
+    #log_avg_stone_std=rep(median(post$a_bar),30),
+    count_palm_std=palm_seq,
+    stone_grid_index=rep(1,30),
+    grid_id_follow=rep(1,30)
+  )
+  link2 <- link(m10me, data=dpred , replace=list(stone_grid_index=a_grid_s_z , grid_id_follow=a_grid_f_z) )
+  pred_median <- apply(link2$p , 2 , median)
+  lines(pred_median ~ palm_seq , lw=2, col=col.alpha("green4",0.5) , lty=1)
+}
+```
+
+## Stone Availabilty
+```{r}
+post <- extract.samples(m10me)
+str(post)
+p_link_stone <- function(x){
+    id <- 1
+    logit_scale <- with(post , ap + a_id[,id,1]*0 +  (bS + a_id[,id,2])*x +
+      (bPT + a_id[,id,3]*0)*0 + (bPTxS + a_id[,id,4]*0)*0*x )
+    return(logistic(logit_scale))
+}
+
+stone_seq <-  seq(from=min(data_list_daily$log_avg_stone_std) , 
+                 to=max(data_list_daily$log_avg_stone_std) , length=30)
+
+p_raw <- sapply( stone_seq, function(x) p_link_stone(x) )
+
+plot(data_list_daily$nutcrackin ~ data_list_daily$log_avg_stone_std ,
+     pch=19 , col=col.alpha("darkslateblue",0.004), ylab="probability of nut cracking",
+     xlab= "log stone density/ 110 m^2 grid (standardized)")
+
+pred_median <- apply(p_raw , 2 , median)
+lines(pred_median ~ stone_seq , lw=2, col=1 , lty=1)
+
+for (j in sample( c(1:2000) , 100) ){
+  lines( p_raw[j,] ~ stone_seq , lw=3, col=col.alpha("darkslateblue", alpha=0.1) , lty=1)
+}
+```
+
+There also be a weak interaction, but treat with caution.
+```{r}
+##stone abundance
+par( mfrow=c(1,3))
+stone_samp <- c(-2,0,2)
+
+for(j in 1:3){
+  plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
+       pch=19 , col=col.alpha("green4",0.004), ylab="probability of nut cracking",
+       xlab= "palm tree density/ 22 m^2 grid (standardized)" , main=stone_samp[j] )
+
+  palm_seq <-  seq(from=min(data_list_daily$count_palm_std) ,
+                   to=max(data_list_daily$count_palm_std) , length=30)
+  dpred <- list(
+    id=rep(1,30), #list of ones we will replace
+    log_avg_stone_std=rep(stone_samp[j],30),
+    count_palm_std=palm_seq,
+    stone_grid_index=rep(1,30),
+    grid_id_follow=rep(1,30)
+  )
+
+  link2 <- link(m10me, data=dpred , replace=list(id=a_id_z , stone_grid_index=a_grid_s_z , grid_id_follow=a_grid_f_z) )
+  pred_median <- apply(link2$p , 2 , median)
+  lines(pred_median ~ palm_seq , lw=2, col=1 , lty=1)
+
+  for (j in sample( c(1:2000) , 100) ){
+    lines( link2$p[j,] ~ palm_seq , lw=3, col=col.alpha("green4", alpha=0.1) , lty=1)
+  }
+}
+#dev.off()
+```
+
+
+## Terrestriality
+
+```{r}
+m_h2 <- ulam(
+  alist(
+    height_dm ~ dzipois( p , lambda ),
+    logit(p) <- ap + a_id[id,1] + (bNp + a_id[id,3])*nutcrackin ,
+    log(lambda) <- al + a_id[id,2] + (bNl + a_id[id,4])*nutcrackin ,
+    # adaptive priors - non-centered
+    transpars> matrix[id,4]:a_id <-
+      compose_noncentered( sigma_id , L_Rho_id , z_id ),
+    matrix[4,id]:z_id ~ normal( 0 , 1 ),
+    # fixed priors
+    c(ap,bNp,bNl) ~ dnorm( 0 , 1 ),
+    al ~ dnorm( 3.5 , 2 ),
+    vector[4]:sigma_id ~ dexp(1),
+    cholesky_factor_corr[4]:L_Rho_id ~ lkj_corr_cholesky( 3 ),
+    # compute ordinary correlation matrixes from Cholesky factors
+    gq> matrix[4,4]:Rho_id <<- Chol_to_Corr(L_Rho_id)
+  ) , data=data_list_height , chains=4 , cores=4 , cmdstan = TRUE)
+```
+```{r}
+plot(precis( m_h2 , depth=2))
+precis( m_h2 , depth=2)
+precis( m_h2 , depth=3 , pars="Rho_id")
+```
+Let plot the probability of being terrestrial in each context with got plots for each individual.
+Unsurprisingly, they are more terrestrial when using tools. 
+```{r}
+post <- extract.samples(m_h2)
+
+dens(logistic(post$ap) , xlim=c(0.05, 0.5 ) , xlab="probability of being terrestrial")
+dens(logistic(post$ap + post$bNp) , add=TRUE , col="slateblue" )
+legend(x = "topright", legend = c("tool use", "non tool use") , fill = c("slateblue","black") , bty='n' ) 
+blog=1.5
+for(i in 1:17){
+  squanch <- logistic(post$ap + post$a_id[,i,1] )
+  points( median(squanch) , (i-.1)/blog , pch=18)
+  segments(x0=HPDI(squanch)[1] , x1=HPDI(squanch)[2] , y0=(i-.1)/blog , y1=(i-.1)/blog  )
+  squanch <- logistic(post$ap + post$a_id[,i,1]  + post$bNp + post$a_id[,i,2])
+  points( median(squanch) , (i+.1)/blog , col="slateblue" , pch=16)
+  segments(x0=HPDI(squanch)[1] , x1=HPDI(squanch)[2] , y0=(i+.1)/blog , y1=(i+.1)/blog , col="slateblue" )
+}
+
+```
+
+Ok now we can plot the heights in decimeters (Sorry).
+Same story. Note 50 is 5 m.
+
+```{r}
+dens( (1-logistic(post$ap))*exp(post$al) , xlim=c(0, 200) , xlab="height in dm during follows" , show.HPDI=.99999 )
+dens((1-logistic(post$ap + post$bNp))*exp(post$al + post$bNl) , add=TRUE , col="slateblue" , show.HPDI=.99999)
+legend(x = "topright", legend = c("tool use", "non tool use") , fill = c("slateblue","black") , bty='n' ) 
+blog=200
+for(i in 1:17){
+  squanch <- (1-logistic(post$ap + post$a_id[,i,1] ))*exp(post$al+ post$a_id[,i,3])
+  points( median(squanch) , (i-.1)/blog , pch=18)
+  segments(x0=HPDI(squanch)[1] , x1=HPDI(squanch)[2] , y0=(i-.1)/blog , y1=(i-.1)/blog  )
+  squanch <- (1-logistic(post$ap + post$a_id[,i,1]  + post$bNp + post$a_id[,i,2]))*exp(post$al + post$a_id[,i,3]+ post$bNl + post$a_id[,i,4])
+  points( median(squanch) , (i+.1)/blog , col="slateblue" , pch=16)
+  segments(x0=HPDI(squanch)[1] , x1=HPDI(squanch)[2] , y0=(i+.1)/blog , y1=(i+.1)/blog , col="slateblue" )
+}
+```
+
+## Predictive maps per grid cell,
+One of Tati's big questions was, does the relationship between terrestriality out of tool use context, and terrestriality within tool use context differ?
+So if we are trying to predict terrestriality rates inside and outside of tool use context, are the the same within a quadrat.

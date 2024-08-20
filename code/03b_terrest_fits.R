@@ -902,7 +902,116 @@ mzag_13nc <- ulam(
     data=data_list_height3, chains=6, cores=6, iter=1200 , control=list(adapt_delta=0.9)   
 )
 
-### terrestriality predictied by s and palm
+mzag_14 <- ulam(
+    alist(
+        height_m|height_m==0 ~ custom( bernoulli_lpmf(1|p) ) ,
+        height_m|height_m>0 ~ custom( bernoulli_lpmf(0|p) + gamma_lpdf( height_m | mu/scale , 1/scale) ) ,
+        logit(p) <- ap + a_id[id,1] + a_g110[grid_id_follow_dummy,1] +
+            (bNp + a_id[id,3] + a_g110[grid_id_follow_dummy,3])*nutcrackin + 
+            (bSp + a_id[id,5] + a_g110[grid_id_follow_dummy,5])*log_avg_stone_std +
+            (bPTp + a_id[id,7]+ a_g110[grid_id_follow_dummy,7])*count_palm_std,
+        
+        log(mu) <- al + a_id[id,2] + a_g110[grid_id_follow_dummy,2] + 
+            (bNl + a_id[id,4] + a_g110[grid_id_follow_dummy,4])*nutcrackin + 
+            (bSl + a_id[id,6] + a_g110[grid_id_follow_dummy,6])*log_avg_stone_std +
+            (bPTl + a_id[id,8] + a_g110[grid_id_follow_dummy,8])*count_palm_std,
+        
+        # adaptive priors - non-centered
+        transpars> matrix[id,8]:a_id <-
+            compose_noncentered( sigma_id , L_Rho_id , z_id ),
+        matrix[8,id]:z_id ~ normal( 0 , 1 ),
+        
+        transpars> matrix[grid_id_follow_dummy,8]:a_g110 <-
+            compose_noncentered( sigma_g110 , L_Rho_g110 , z_g110 ),
+        matrix[8,grid_id_follow_dummy]:z_g110 ~ normal( 0 , 1 ),
+        
+        # fixed priors
+        c(ap,bNp,bNl,bSp,bSl,bPTp,bPTl) ~ dnorm( 0 , 1 ),
+        al ~ dnorm( 1 , 2 ),
+        scale ~ dexp(1),
+        vector[8]:sigma_id ~ dexp(1),
+        vector[8]:sigma_g110 ~ dexp(1),
+        
+        cholesky_factor_corr[8]:L_Rho_id ~ lkj_corr_cholesky( 3 ),
+        cholesky_factor_corr[8]:L_Rho_g110 ~ lkj_corr_cholesky( 3 ),
+        
+        # compute ordinary correlation matrixes from Cholesky factors
+        gq> matrix[8,8]:Rho_id <<- Chol_to_Corr(L_Rho_id),
+        gq> matrix[8,8]:Rho_g110 <<- Chol_to_Corr(L_Rho_g110)
+        
+    ) , 
+    data=data_list_height2, chains=4, cores=4 , iter=1500   
+)
+
+precis(mzag_14)
+precis(mzag_14 , pars=c("Rho_id" , "Rho_g110") , depth=3)
+plot(precis(mzag_14 , pars=c("Rho_id" , "Rho_g110") , depth=3))
+
+mzag_15 <- ulam(
+    alist(
+        # # model stone abundance as a GP
+        # #stone model
+        # stone_raw_grid ~ dpois( lambda ), #define poisson likelihood
+        # log(lambda) <-  s_bar + s_grid[stone_grid_index],
+        # #priors
+        # s_bar ~ dnorm( 3 , 2 ), #mean effect on logscale
+        # etasq_s ~ dexp( 2 ),
+        # rhosq_s ~ dexp( 0.5 ),
+        # # non-centered Gaussian Process prior
+        # transpars> vector[40]: s_grid <<- L_SIGMA_s * z_s,
+        # vector[40]: z_s ~ normal( 0 , 1 ),
+        # transpars> matrix[40,40]: L_SIGMA_s <<- cholesky_decompose( SIGMA_s ),
+        # transpars> matrix[40,40]: SIGMA_s <- cov_GPL2( Dmat110_full , etasq_s , rhosq_s , 0.01 ),
+        # 
+        #ntu
+        height_m_ntu|height_m_ntu==0 ~ custom( bernoulli_lpmf(1|p_ntu) ) ,
+        height_m_ntu|height_m_ntu>0  ~ custom( bernoulli_lpmf(0|p_ntu) + gamma_lpdf( height_m_ntu | mu_ntu/scale_ntu , 1/scale_ntu) ) ,
+        logit(p_ntu) <- ap_ntu + a_id[id_ntu,1] + a_g110[grid_id_follow_dummy_ntu,1] +
+            (bSp_ntu + a_id[id_ntu,3] + a_g110[grid_id_follow_dummy_ntu,3])*log_avg_stone_std_ntu +
+            (bPTp_ntu + a_id[id_ntu,5]+ a_g110[grid_id_follow_dummy_ntu,5])*count_palm_std_ntu,
+        log(mu_ntu) <- al_ntu + a_id[id_ntu,2] + a_g110[grid_id_follow_dummy_ntu,2] + 
+            (bSl_ntu + a_id[id_ntu,4] + a_g110[grid_id_follow_dummy_ntu,4])*log_avg_stone_std_ntu +
+            (bPTl_ntu + a_id[id_ntu,6] + a_g110[grid_id_follow_dummy_ntu,6])*count_palm_std_ntu,
+        #tu
+        height_m_tu|height_m_tu==0  ~ custom( bernoulli_lpmf(1|p_tu) ) ,
+        height_m_tu|height_m_tu>0 ~ custom( bernoulli_lpmf(0|p_tu) + gamma_lpdf( height_m_tu | mu_tu/scale_tu , 1/scale_tu) ) ,
+        logit(p_tu) <- ap_tu + a_id[id_tu,7] + a_g110[grid_id_follow_dummy_tu,7] +
+            (bSp_tu + a_id[id_tu,9] + a_g110[grid_id_follow_dummy_tu,9])*log_avg_stone_std_tu +
+            (bPTp_tu + a_id[id_tu,11]+ a_g110[grid_id_follow_dummy_tu,11])*count_palm_std_tu,
+        log(mu_tu) <- al_tu + a_id[id_tu,8] + a_g110[grid_id_follow_dummy_tu,8] + 
+            (bSl_tu + a_id[id_tu,10] + a_g110[grid_id_follow_dummy_tu,10])*log_avg_stone_std_tu +
+            (bPTl_tu + a_id[id_tu,12] + a_g110[grid_id_follow_dummy_tu,12])*count_palm_std_tu,
+        # fixed priors tu
+        c(ap_tu,bNp_tu,bNl_tu,bSp_tu,bSl_tu,bPTp_tu,bPTl_tu) ~ dnorm( 0 , 1 ),
+        al_tu ~ dnorm( 1 , 2 ),
+        scale_tu ~ dexp(1),
+        # fixed priors ntu
+        c(ap_ntu,bNp_ntu,bNl_ntu,bSp_ntu,bSl_ntu,bPTp_ntu,bPTl_ntu) ~ dnorm( 0 , 1 ),
+        al_ntu ~ dnorm( 1 , 2 ),
+        scale_ntu ~ dexp(1),
+        # adaptive priors - non-centered
+        transpars> matrix[17,12]:a_id <-
+            compose_noncentered( sigma_id , L_Rho_id , z_id ),
+        matrix[12,17]:z_id ~ normal( 0 , 1 ),
+        
+        transpars> matrix[39,12]:a_g110 <-
+            compose_noncentered( sigma_g110 , L_Rho_g110 , z_g110 ),
+        matrix[12,39]:z_g110 ~ normal( 0 , 1 ),
+        
+        vector[12]:sigma_id ~ dexp(1),
+        vector[12]:sigma_g110 ~ dexp(1),
+        cholesky_factor_corr[12]:L_Rho_id ~ lkj_corr_cholesky( 4 ),
+        cholesky_factor_corr[12]:L_Rho_g110 ~ lkj_corr_cholesky( 4 ),
+        
+        # compute ordinary correlation matrixes from Cholesky factors
+        gq> matrix[12,12]:Rho_id <<- Chol_to_Corr(L_Rho_id),
+        gq> matrix[12,12]:Rho_g110 <<- Chol_to_Corr(L_Rho_g110)
+        
+    ) , 
+    data=data_list_height4, chains=5, cores=5 , iter=1500   
+)
+
+### termzag_14### terrestriality predictied by s and palm
 m1 <-ulam(
     alist(
         ### main model

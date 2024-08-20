@@ -357,8 +357,49 @@ data_list_height3 <- list(
     Dmat110=Dmat_22_dm
     
 )
+
+#allTU
+TU <- which(blah$nutcracking==1)
+NTU <- which(blah$nutcracking==0)
+data_list_height4 <- list(
+    height_m_tu=blah$height[TU],
+    nutcrackin_tu=blah$nutcracking[TU],
+    id_tu = blah$id[TU],
+    follow_index_tu = blah$follow_index[TU],
+    grid_id_follow_tu = blah$grid_id[TU],# real grid id from follow, mising cell 15 cause no monkeys went there
+    grid_id_follow_dummy_tu = as.integer(as.factor(blah$grid_id))[TU],# had to reassign ids so indexing works finwe with ulam
+    avg_stone_tu = blah$average_stone[TU], #average stones in big grid
+    count_palm_tu = blah$count_palm_trees[TU], #palms in 22m grid
+    log_avg_stone_std_tu = standardize(blah$log_average_stone)[TU], #log average stones in big grid
+    count_palm_std_tu = standardize(blah$count_palm_trees)[TU], #palms in 22m grid
+    sex_index_tu = as.integer(as.factor(blah$sex))[TU],
+    #follow_length = heights_data$follow_length,
+    #log_follow_length = log(heights_data$follow_length)
+    cell_id_tu=blah$corresponding_cell_id[TU],
+    cell_id_index_tu=as.integer(as.factor(blah$corresponding_cell_id))[TU],
+    #nc=blah$nutcracking + 1,
+    height_m_ntu=blah$height,
+    nutcrackin_ntu=blah$nutcracking[NTU],
+    id_ntu = blah$id[NTU],
+    follow_index_ntu = blah$follow_index[NTU],
+    grid_id_follow_ntu = blah$grid_id[NTU],# real grid id from follow, mising cell 15 cause no monkeys went there
+    grid_id_follow_dummy_ntu = as.integer(as.factor(blah$grid_id))[NTU],# had to reassign ids so indexing works finwe with ulam
+    avg_stone_ntu = blah$average_stone[NTU], #average stones in big grid
+    count_palm_ntu = blah$count_palm_trees[NTU], #palms in 22m grid
+    log_avg_stone_std_ntu = standardize(blah$log_average_stone)[NTU], #log average stones in big grid
+    count_palm_std_ntu = standardize(blah$count_palm_trees)[NTU], #palms in 22m grid
+    sex_index_ntu = as.integer(as.factor(blah$sex))[NTU],
+    #follow_length = heights_data$follow_length,
+    #log_follow_length = log(heights_data$follow_length)
+    cell_id_ntu=blah$corresponding_cell_id[NTU],
+    cell_id_index_ntu=as.integer(as.factor(blah$corresponding_cell_id))[NTU],
+    stone_raw_grid = raw_stones$rawstones_count_subplot, # list of all stones, 3 observations per grid
+    stone_grid_index = raw_stones$grid_id, # list of grid ids associated with observations
+    Dmat110=Dmat_110_dm,
+    Dmat110_full=Dmat_110_dm_full
+)
+
 data_list_height_tu <- list(
-    height_dm=as.integer(blah_tu$height*10),
     height_m=blah_tu$height,
     nutcrackin=blah_tu$nutcracking,
     id = as.integer(as.factor(blah_tu$id)),
@@ -383,14 +424,13 @@ data_list_height_tu <- list(
 )
 
 data_list_height_ntu <- list(
-    height_dm=as.integer(blah_ntu$height*10),
     height_m=blah_ntu$height,
     nutcrackin=blah_ntu$nutcracking,
     id = blah_ntu$id,
     follow_index = blah_ntu$follow_index,
     day_index = blah_ntu$day_index,
     grid_id_follow = blah_ntu$grid_id,# real grid id from follow, mising cell 15 cause no monkeys went there
-    grid_id_follow_dummy = as.integer(as.factor(blah_ntu$grid_id)),# had to reassign ids so indexing works finwe with ulam
+    grid_id_follow_dummy = as.integer(as.factor(blah_ntu$grid_id)),# had to reassign ids so indexing works fine with ulam
     avg_stone = blah_ntu$average_stone, #average stones in big grid
     count_palm = blah_ntu$count_palm_trees, #palms in 22m grid
     avg_stone_std = standardize(blah_ntu$average_stone), #average stones in big grid
@@ -435,6 +475,27 @@ data_list_daily_2 <- list(
     count_palm_all=grid_22m$count_palm_trees
 )
 
+data_list_daily_tu_ntu <- list(
+    nutcrackin = joined_df4$nutcrackin,
+    id = joined_df4$id,
+    grid_id_follow = joined_df4$grid_id,# real grid id from follow, mising cell 15 cause no monkeys went there
+    grid_id_follow_dummy = as.integer(as.factor(joined_df4$grid_id)),# had to reassign ids so indexing works finwe with ulam
+    avg_stone = joined_df4$average_stone, #average stones in big grid
+    count_palm = joined_df4$count_palm_trees, #palms in 22m grid
+    avg_stone_std = standardize(joined_df4$average_stone), #average stones in big grid
+    log_avg_stone_std = standardize(joined_df4$log_average_stone), #log average stones in big grid
+    count_palm_std = standardize(joined_df4$count_palm_trees), #palms in 22m grid
+    follow_length=joined_df4$follow_length,
+    log_follow_length=log(joined_df4$follow_length),
+    sex_index = as.integer(as.factor(joined_df4$sex)),
+    stone_raw_grid = raw_stones$rawstones_count_subplot, # list of all stones, 3 observations per grid
+    stone_grid_index = raw_stones$grid_id, # list of grid ids associated with observations
+    cell_id=joined_df4$corresponding_cell_id,
+    Dmat110=Dmat_110_dm_full,
+    Dmat22=Dmat_22_dm_full,
+    cell_id_all=grid_22m$cell_id,
+    count_palm_all=grid_22m$count_palm_trees
+)
 
 ###arrive and leave
 str(blah)

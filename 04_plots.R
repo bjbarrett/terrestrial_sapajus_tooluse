@@ -176,4 +176,179 @@ png(file = "plots/height_first_scan.png")
     }
 dev.off()
 
+post <- extract.samples(m1f)
+data_list_height_zero$terr <- ifelse(data_list_height_zero$height_m==0,1,0) 
 
+palm_seq <-  seq(from=min(data_list_height_zero$count_palm_std) , to=max(data_list_height_zero$count_palm_std) , length=30)
+# generate preds to plot
+
+p_preds <- sapply( palm_seq, function(x) logistic(  post$ap + post$bPTp*x + post$bNp*0 + post$bNxPTp*0*x ) )
+p_med <- apply( p_preds , 2 , median )
+lambda_preds <- sapply( palm_seq, function(x) exp(  post$al  + post$bPTl*x + post$bNl*0 + post$bNxPTl*0*x ) )
+lambda_med <- apply( lambda_preds , 2 , median )
+joint_preds <- (1-p_preds)*(lambda_preds)
+joint_med <- apply( joint_preds , 2 , median )
+
+#png(file = "plots/height_palm_maineff.png") 
+plot(data_list_height_zero$height_m~data_list_height_zero$count_palm_std, 
+     col=col.alpha("black",0.05) , ylim=c(0,30) , xlab="palm density per 22 m square grid  (standardized)" ,
+     ylab="height (m)") 
+
+#plot post median
+lines(joint_med ~ palm_seq , lw=2, col="black" , lty=1)
+for (j in sample( c(1:2000) , 100) ){
+    lines( joint_preds[j,] ~ palm_seq , lw=3, col=col.alpha("black", alpha=0.05) , lty=1)
+}
+#dev.off()
+
+p_preds2 <- sapply( palm_seq, function(x) logistic(  post$ap + post$bPTp*x + post$bNp*1 + post$bNxPTp*1*x ) )
+p_med2 <- apply( p_preds2 , 2 , median )
+lambda_preds2 <- sapply( palm_seq, function(x) exp(  post$al  + post$bPTl*x + post$bNl*1 + post$bNxPTl*1*x ) )
+lambda_med2 <- apply( lambda_preds , 2 , median )
+joint_preds2 <- (1-p_preds2)*(lambda_preds2)
+joint_med2 <- apply( joint_preds2 , 2 , median )
+
+lines(joint_med2 ~ palm_seq , lw=2, col="slateblue" , lty=1)
+for (j in sample( c(1:2000) , 100) ){
+    lines( joint_preds2[j,] ~ palm_seq , lw=3, col=col.alpha("slateblue", alpha=0.05) , lty=1)
+}
+
+
+
+
+#png(file = "plots/terr_palm_maineff.png") 
+plot(data_list_height_zero$terr~data_list_height_zero$count_palm_std, 
+     col=col.alpha("black",0.01) , ylim=c(0,1) , xlab="palm density per 22 m square grid  (standardized)" ,
+     ylab="probability of being terrestrial" , pch=19) 
+
+#plot post median
+lines(p_med ~ palm_seq , lw=2, col="black" , lty=1)
+for (j in sample( c(1:2000) , 100) ){
+    lines( p_preds[j,] ~ palm_seq , lw=3, col=col.alpha("black", alpha=0.05) , lty=1)
+}
+
+lines(p_med2 ~ palm_seq , lw=2, col="slateblue" , lty=1)
+for (j in sample( c(1:2000) , 100) ){
+    lines( p_preds2[j,] ~ palm_seq , lw=3, col=col.alpha("slateblue", alpha=0.05) , lty=1)
+}
+#dev.off()
+
+
+library(dagitty)
+myDAG1 <- dagitty( 'dag {
+Terrest -> ToolUse
+PalmTrees -> ToolUse
+Stone -> ToolUse
+Predation -> ToolUse
+Predation -> Terrest
+Predation[unobserved]
+}' )
+
+
+
+plot(myDAG1)
+
+#can't answer this
+adjustmentSets(
+    myDAG1,
+    exposure = "Terrest",
+    outcome = "ToolUse",
+    type =  "canonical",
+    effect = "total"
+) 
+
+# adjustmentSets(
+#     myDAG1,
+#     exposure = "PalmTrees",
+#     outcome = "ToolUse",
+#     type =  "canonical",
+#     effect = "total"
+# )  
+
+myDAG2 <- dagitty( 'dag {
+PalmTrees -> ToolUse
+Stone -> ToolUse
+Predation -> ToolUse
+Predation -> Terrest
+Predation[unobserved]
+}' )
+
+plot(myDAG2)
+adjustmentSets(
+    myDAG2,
+    exposure = "Terrest",
+    outcome = "ToolUse",
+    type =  "canonical",
+    effect = "total"
+) 
+
+myDAG3 <- dagitty( 'dag {
+Terrest -> ToolUse
+PalmTrees -> ToolUse
+Stone -> ToolUse
+Predation -> ToolUse
+Predation -> Terrest
+Predation[unobserved]
+PalmTrees -> Terrest
+Stone -> Terrest
+}' )
+
+plot(myDAG3)
+adjustmentSets(
+    myDAG3,
+    exposure = "Terrest",
+    outcome = "ToolUse",
+    type =  "canonical",
+    effect = "total"
+) 
+
+adjustmentSets(
+    myDAG3,
+    exposure = "PalmTrees",
+    outcome = "ToolUse",
+    type =  "canonical",
+    effect = "total"
+) 
+
+adjustmentSets(
+    myDAG3,
+    exposure = "Stone",
+    outcome = "ToolUse",
+    type =  "canonical",
+    effect = "total"
+) 
+
+myDAG4 <- dagitty( 'dag {
+PalmTrees -> ToolUse
+Stone -> ToolUse
+Predation -> ToolUse
+Predation -> Terrest
+Predation[unobserved]
+PalmTrees -> Terrest
+Stone -> Terrest
+}' )
+
+plot(myDAG4)
+adjustmentSets(
+    myDAG4,
+    exposure = "Terrest",
+    outcome = "ToolUse",
+    type =  "canonical",
+    effect = "total"
+) 
+
+adjustmentSets(
+    myDAG4,
+    exposure = "PalmTrees",
+    outcome = "ToolUse",
+    type =  "canonical",
+    effect = "total"
+) 
+
+adjustmentSets(
+    myDAG4,
+    exposure = "Stone",
+    outcome = "ToolUse",
+    type =  "canonical",
+    effect = "total"
+) 

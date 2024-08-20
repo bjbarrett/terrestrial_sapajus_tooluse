@@ -416,6 +416,84 @@ m9me <- ulam(
 
 precis(m9me , depth=3)
 plot(precis(m9me , depth=2))
+a_grid_f_z <- matrix(0,2000,length(unique(data_list_daily$grid_id_follow))) #need to add zeros in VE to plot main effect
+a_grid_s_z <- matrix(0,2000,length(unique(data_list_daily$stone_grid_index))) #need to add zeros in VE to plot main effect
+
+post <- extract.samples(m9me)
+median(post$a_bar)
+str(post)
+png(file = "plots/p_nc_m9me.png") 
+
+    plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
+         pch=19 , col=col.alpha("green4",0.004), ylab="probability of nut cracking",
+         xlab= "palm tree density/ 22 m^2 grid (standardized)")
+    
+    palm_seq <-  seq(from=min(data_list_daily$count_palm_std) , 
+                     to=max(data_list_daily$count_palm_std) , length=30)
+    dpred <- list(
+        id=rep(1,30), #list of ones we will replace
+        count_palm_std=palm_seq,
+        stone_grid_index=rep(1,30),
+        grid_id_follow=rep(1,30)
+    )
+    
+    link2 <- link(m9me, data=dpred , replace=list(id=a_id_z , stone_grid_index=a_grid_s_z , grid_id_follow=a_grid_f_z) )
+    pred_median <- apply(link2$p , 2 , median)
+    lines(pred_median ~ palm_seq , lw=2, col=1 , lty=1)
+    
+    for (j in sample( c(1:2000) , 100) ){
+        lines( link2$p[j,] ~ palm_seq , lw=3, col=col.alpha("green4", alpha=0.1) , lty=1)
+    }
+dev.off()
+
+## per id plot
+png(file = "plots/p_nc_all_inds_m9me.png") 
+    
+    plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
+         pch=19 , col=col.alpha("green4",0.004), ylab="probability of nut cracking",
+         xlab= "palm tree density/ 22 m^2 grid (standardized)")
+    
+    lines(pred_median ~ palm_seq , lw=2, col=1 , lty=1)
+    
+    for ( i in 1:max(data_list_daily$id)){
+        dpred <- list(
+            id=rep(i,30), #list of ones we will replace
+            log_avg_stone_std=rep(median(post$a_bar),30),
+            count_palm_std=palm_seq,
+            stone_grid_index=rep(1,30),
+            grid_id_follow=rep(1,30)
+        )
+        link2 <- link(m9me, data=dpred , replace=list(stone_grid_index=a_grid_s_z , grid_id_follow=a_grid_f_z) )
+        pred_median <- apply(link2$p , 2 , median)
+        lines(pred_median ~ palm_seq , lw=2, col=col.alpha("green4",0.5) , lty=1)
+    }
+dev.off()
+
+
+png(file = "plots/stone_m9me.png") 
+    p_link_stone <- function(x){
+        id <- 1
+        logit_scale <- with(post , ap + a_id[,id,1]*0 +  (bS + a_id[,id,2])*x +
+                                (bPT + a_id[,id,3]*0)*0 )
+        return(logistic(logit_scale))
+    }
+    
+    stone_seq <-  seq(from=min(data_list_daily$log_avg_stone_std) , 
+                      to=max(data_list_daily$log_avg_stone_std) , length=30)
+    
+    p_raw <- sapply( stone_seq, function(x) p_link_stone(x) )
+    
+    plot(data_list_daily$nutcrackin ~ data_list_daily$log_avg_stone_std ,
+         pch=19 , col=col.alpha("darkslateblue",0.004), ylab="probability of nut cracking",
+         xlab= "log stone density/ 110 m^2 grid (standardized)")
+    
+    pred_median <- apply(p_raw , 2 , median)
+    lines(pred_median ~ stone_seq , lw=2, col=1 , lty=1)
+    
+    for (j in sample( c(1:2000) , 100) ){
+        lines( p_raw[j,] ~ stone_seq , lw=3, col=col.alpha("darkslateblue", alpha=0.1) , lty=1)
+    }
+dev.off()
 
 m_tree_gp <- ulam(
     alist(
@@ -462,10 +540,32 @@ m9gp <- ulam(
         # compute ordinary correlation matrixes from Cholesky factors
         gq> matrix[3,3]:Rho_id <<- Chol_to_Corr(L_Rho_id)
         
-    ) , data=data_list_daily , chains=4 , cores=4, log_lik=FALSE, iter=4000,  pars_omit = 'z_id' , control=list(adapt_delta=0.99))
+    ) , data=data_list_daily_2 , chains=4 , cores=4, log_lik=FALSE, iter=4000,  pars_omit = 'z_id' , control=list(adapt_delta=0.99))
 
-precis(m9me , depth=3)
-plot(precis(m9me , depth=2))
+post <- extract.samples(m9gp)
+p_link_stone <- function(x){
+    id <- 1
+    logit_scale <- with(post , ap + a_id[,id,1]*0 +  (bS + a_id[,id,2])*x +
+                            (bPT + a_id[,id,3]*0)*0 )
+    return(logistic(logit_scale))
+}
+
+stone_seq <-  seq(from=min(data_list_daily_2$log_avg_stone_std) , 
+                  to=max(data_list_daily_2$log_avg_stone_std) , length=30)
+
+p_raw <- sapply( stone_seq, function(x) p_link_stone(x) )
+
+plot(data_list_daily_2$nutcrackin ~ data_list_daily_2$log_avg_stone_std ,
+     pch=19 , col=col.alpha("darkslateblue",0.004), ylab="probability of nut cracking",
+     xlab= "log stone density/ 110 m^2 grid (standardized)")
+
+pred_median <- apply(p_raw , 2 , median)
+lines(pred_median ~ stone_seq , lw=2, col=1 , lty=1)
+
+for (j in sample( c(1:2000) , 100) ){
+    lines( p_raw[j,] ~ stone_seq , lw=3, col=col.alpha("darkslateblue", alpha=0.1) , lty=1)
+}
+
 
 set.seed(345)
 m10me <- ulam(
@@ -684,6 +784,7 @@ m9e <- ulam(
   ) , data=data_list_daily , chains=4 , cores=16 , threads=16 , log_lik=FALSE, pars_omit = 'z_id')
 
 precis(m9e , depth=3)
+
 
 set.seed(345)
 m10e <- ulam(
