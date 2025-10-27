@@ -5,20 +5,24 @@ library(dplyr)
 
 # collate dataframe
 # number of tool use events in a cell (22m or 110m) per individual per day
-# hours spent following an indivdual ona a given day
-# denisty of stones, density of palms, 
+# hours spent following an individual on a a given day
+# density of stones, density of palms, 
 # currently with aborted follows, the last GPS point uses the first sampling point 
 # to do heights integration
-mapview(grid_22m ) + mapview(focals_data_cropped , cex=0.5) +  mapview(nutcracking_data_cropped, col.regions ="red", cex=0.5) + mapview(palm_trees, col.regions = "green", cex=0.5)
-mapview(grid_110m )
+mapview(grid_22m) + mapview(focals_data_cropped , cex=0.5) +  mapview(nutcracking_data_cropped, col.regions ="red", cex=0.5) + mapview(palm_trees, col.regions = "green", cex=0.5)
+mapview(grid_110m)
 str(grid_22m)
 str(focals_data_cropped)
-focals_data_cropped$date <- date(focals_data_cropped$timestamp) #unique date
+focals_data_cropped$date <- date(focals_data_cropped$timestamp2) #unique date
 
+# number of nutcracking follows per individual per day per cell across all of data
+daily_crack <- aggregate(n_nuts ~ individual + date + corresponding_cell_id , focals_data_cropped, sum) 
 # number of nutcracks per individual per day across all of data
-daily_crack <- aggregate(nutcrackin ~ individual + date + corresponding_cell_id , focals_data_cropped, sum) 
-hist(focals_data_cropped$nutcrackin)
-hist(daily_crack$nutcrackin)
+daily_crack_2 <- aggregate(n_nuts ~ individual + date , focals_data_cropped, sum) 
+
+hist(focals_data_cropped$nutcracking)
+hist(daily_crack$n_nuts)
+hist(daily_crack_2$n_nuts)
 str(daily_crack)
 unique(daily_crack$individual)
 unique(focals_data_cropped$individual)
@@ -62,7 +66,7 @@ hist(temp$minutes_followed) #there is a duplicated follow, check up on it
 ## bernouli count of mean
 # craete a list
 data_list <- list(
-  nutcrackin = focals_data_cropped$nutcrackin
+  nutcracking = focals_data_cropped$nutcracking
 )
 
 rpois(n=1000 , lambda=2 )
@@ -90,7 +94,7 @@ str(joined_df)
 joined_df$id <- as.integer(as.factor(joined_df$individual))
 joined_df$log_average_stone <- log(joined_df$average_stone)
 
-sort(unique(joined_df$timestamp)) # this gives timestamps which we need to link to the stones
+sort(unique(joined_df$timestamp2)) # this gives timestamps which we need to link to the stones
 ##### add in raw stones
 
 raw_stones <- read.csv("data/raw_stones_subplots.csv")
@@ -167,7 +171,6 @@ for(i in 1:max(raw_stones$grid_id)){
 
 
 ####causes of terrestriality
-
 str(heights_data)
 heights_data$height
 heights_data$id <- as.integer(as.factor(heights_data$individual))
@@ -186,12 +189,13 @@ which(heights_data$follow_length=='NA')
 
 nrow(heights_data)
 
+#below has follow length for exposure
 temp2 <- heights_data[,c("timestamp" ,"follow_length")]
 
-joined_df$timestamp <- substr(joined_df$timestamp,1,nchar(joined_df$timestamp)-4)#remove weird trailing zeros
+#joined_df$timestamp <- substr(joined_df$timestamp,1,nchar(joined_df$timestamp)-4)#remove weird trailing zeros
 #make dates compatible  
 temp2$timestamp <- ymd_hms(temp2$timestamp)
-joined_df$timestamp <- ymd_hms(joined_df$timestamp)
+joined_df$timestamp <- joined_df$timestamp2
 temp2 <- temp2[!duplicated(temp2), ]
 
 joined_df2<- merge(temp2,joined_df, by="timestamp")
@@ -200,10 +204,12 @@ str(joined_df2)
 joined_df3 <- joined_df2[joined_df2$focal_begi==0,]
 joined_df4 <- joined_df3[which(is.na(joined_df3$follow_length)==FALSE),]
 joined_df4 <- joined_df4[joined_df4 $follow_length>0,]
-str(joined_df4)
 
+##lets make a datalist
 data_list_daily <- list(
-  nutcrackin = joined_df4$nutcrackin,
+  nutcracking = joined_df4$nutcracking,
+  n_nuts = joined_df4$n_nuts,
+  n_success = joined_df4$n_success,
   id = joined_df4$id,
   grid_id_follow = joined_df4$grid_id,# real grid id from follow, mising cell 15 cause no monkeys went there
   grid_id_follow_dummy = as.integer(as.factor(joined_df4$grid_id)),# had to reassign ids so indexing works finwe with ulam
@@ -229,28 +235,29 @@ data_list_daily <- list(
 dens(joined_df4$count_palm_trees)
 dens(joined_df4$average_stone)
 
-m1ZIP <- ulam(
-  alist(
-    nutcrackin ~ dzipois( p , lambda ),
-    logit(p) <- ap + a_id[id,1],
-    log(lambda) <- al + a_id[id,2],
-    # adaptive priors - non-centered
-    transpars> matrix[id,2]:a_id <-
-      compose_noncentered( sigma_id , L_Rho_id , z_id ),
-    matrix[2,id]:z_id ~ normal( 0 , 1 ),
-    # fixed priors
-    ap ~ dnorm( 0 , 1 ),
-    al ~ dnorm( 0 , 2 ),
-    vector[2]:sigma_id ~ dexp(1),
-    cholesky_factor_corr[2]:L_Rho_id ~ lkj_corr_cholesky( 3 ),
-    # compute ordinary correlation matrixes from Cholesky factors
-    gq> matrix[2,2]:Rho_id <<- Chol_to_Corr(L_Rho_id)
-    
-  ) , data=data_list_daily , chains=4 , cores=4 , log_lik=TRUE)
-
-plot(precis( m1ZIP , depth=2 ))
-plot(precis( m1ZIP , depth=3 , pars='a_id' ))
-plot(precis( m1ZIP , depth=3 , pars='L_Rho_id' ))
+#gives estimated daily nutcracking rate, ignoring sampling effort but sum across all follows
+# m1ZIP <- ulam(
+#   alist(
+#     nutcracking ~ dzipois( p , lambda ),
+#     logit(p) <- ap + a_id[id,1],
+#     log(lambda) <- al + a_id[id,2],
+#     # adaptive priors - non-centered
+#     transpars> matrix[id,2]:a_id <-
+#       compose_noncentered( sigma_id , L_Rho_id , z_id ),
+#     matrix[2,id]:z_id ~ normal( 0 , 1 ),
+#     # fixed priors
+#     ap ~ dnorm( 0 , 1 ),
+#     al ~ dnorm( 0 , 2 ),
+#     vector[2]:sigma_id ~ dexp(1),
+#     cholesky_factor_corr[2]:L_Rho_id ~ lkj_corr_cholesky( 3 ),
+#     # compute ordinary correlation matrixes from Cholesky factors
+#     gq> matrix[2,2]:Rho_id <<- Chol_to_Corr(L_Rho_id)
+#     
+#   ) , data=data_list_daily , chains=4 , cores=4 , log_lik=TRUE)
+# 
+# plot(precis( m1ZIP , depth=2 ))
+# plot(precis( m1ZIP , depth=3 , pars='a_id' ))
+# plot(precis( m1ZIP , depth=3 , pars='L_Rho_id' ))
 
 str(heights_data)
 str(joined_df)
@@ -261,18 +268,27 @@ colnames(joined_df)
 heights_data <- heights_data
 joined_df_blah <- joined_df4[,c("corresponding_cell_id","location.l","location_1"           
                                ,"focal_begi","geometry.x","grid_id","count_palm_trees","average_stone","rawstones_average",
-                            "geometry.y","log_average_stone","ts2")]
-blah <- merge(select(heights_data, -c(follow_length)),joined_df_blah, by="ts2")
+                            "geometry.y","log_average_stone","ts2","X1st_strike_min.1")]
+#lets make it so <- 0.5 is terrestrial
+heights_data$height <- ifelse(heights_data$height <= 0.5 , 0 , heights_data$height)
+
+#blah <- merge(select(heights_data, -c("follow_length")),joined_df_blah, by="ts2")
+blah <- merge(heights_data,joined_df_blah, by="ts2")
+
 str(blah)
 sort(unique(blah$ts2))
 ddd <- sort(unique(blah$ts2))
 as.POSIXct(heights_data$timestamp)
+
 ##terrest data
+
+
 data_list_height <- list(
-  
-    height_dm=as.integer(heights_data$height*10),
+  height_dm=as.integer(heights_data$height*10),
   height_m=heights_data$height,
-  nutcrackin=heights_data$nutcracking,
+  height_dm_terr=as.integer(heights_data$height_terr*10),
+  height_m_terr=heights_data$height_terr,
+  nutcracking=heights_data$nutcracking,
   id = heights_data$id,
   follow_index = heights_data$follow_index,
   day_index = heights_data$day_index
@@ -306,10 +322,12 @@ Dmat_22_dm_full <- drop_units(st_distance(mtx_distance_22_full,mtx_distance_22_f
 Dmat_22_m_full <- drop_units(st_distance(mtx_distance_22_full,mtx_distance_22_full))
 
 mtx_distance_22 <- st_centroid(grid_22m$geometry) 
+
+### 110 m height dataframe
 data_list_height2 <- list(
     height_dm=as.integer(blah$height*10),
     height_m=blah$height,
-    nutcrackin=blah$nutcracking,
+    nutcracking=blah$nutcracking,
     id = blah$id,
     follow_index = blah$follow_index,
     day_index = blah$day_index,
@@ -332,10 +350,11 @@ data_list_height2 <- list(
     Dmat110_full=Dmat_110_dm_full
 )
 
+######this is the 22 m fll height dataframe
 data_list_height3 <- list(
     height_dm=as.integer(blah$height*10),
     height_m=blah$height,
-    nutcrackin=blah$nutcracking,
+    nutcracking=blah$nutcracking,
     id = blah$id,
     follow_index = blah$follow_index,
     day_index = blah$day_index,
@@ -353,17 +372,19 @@ data_list_height3 <- list(
     #log_follow_length = log(heights_data$follow_length)
     cell_id=blah$corresponding_cell_id,
     cell_id_index=as.integer(as.factor(blah$corresponding_cell_id)),
-    nc=blah$nutcracking + 1,
-    Dmat110=Dmat_22_dm
+    nc=blah$nutcracking + 1 ,
+    Dmat110=Dmat_22_dm_full #likely full 22 didnt change id for copy paste reasons
     
 )
 
 #allTU
 TU <- which(blah$nutcracking==1)
 NTU <- which(blah$nutcracking==0)
+
+### big list of everything, unsure of why i did this
 data_list_height4 <- list(
     height_m_tu=blah$height[TU],
-    nutcrackin_tu=blah$nutcracking[TU],
+    nutcracking_tu=blah$nutcracking[TU],
     id_tu = blah$id[TU],
     follow_index_tu = blah$follow_index[TU],
     grid_id_follow_tu = blah$grid_id[TU],# real grid id from follow, mising cell 15 cause no monkeys went there
@@ -379,7 +400,7 @@ data_list_height4 <- list(
     cell_id_index_tu=as.integer(as.factor(blah$corresponding_cell_id))[TU],
     #nc=blah$nutcracking + 1,
     height_m_ntu=blah$height,
-    nutcrackin_ntu=blah$nutcracking[NTU],
+    nutcracking_ntu=blah$nutcracking[NTU],
     id_ntu = blah$id[NTU],
     follow_index_ntu = blah$follow_index[NTU],
     grid_id_follow_ntu = blah$grid_id[NTU],# real grid id from follow, mising cell 15 cause no monkeys went there
@@ -399,9 +420,10 @@ data_list_height4 <- list(
     Dmat110_full=Dmat_110_dm_full
 )
 
+##height tu
 data_list_height_tu <- list(
     height_m=blah_tu$height,
-    nutcrackin=blah_tu$nutcracking,
+    nutcracking=blah_tu$nutcracking,
     id = as.integer(as.factor(blah_tu$id)),
     follow_index = blah_tu$follow_index,
     day_index = blah_tu$day_index,
@@ -425,7 +447,7 @@ data_list_height_tu <- list(
 
 data_list_height_ntu <- list(
     height_m=blah_ntu$height,
-    nutcrackin=blah_ntu$nutcracking,
+    nutcracking=blah_ntu$nutcracking,
     id = blah_ntu$id,
     follow_index = blah_ntu$follow_index,
     day_index = blah_ntu$day_index,
@@ -449,7 +471,9 @@ data_list_height_ntu <- list(
 )
 
 data_list_daily_2 <- list(
-    nutcrackin = joined_df4$nutcrackin,
+    nutcracking = joined_df4$nutcracking,
+    n_nuts = joined_df4$n_nuts,
+    n_success = joined_df4$n_success,
     id = joined_df4$id,
     grid_id_follow = joined_df4$grid_id,# real grid id from follow, mising cell 15 cause no monkeys went there
     grid_id_follow_dummy = as.integer(as.factor(joined_df4$grid_id)),# had to reassign ids so indexing works finwe with ulam
@@ -476,7 +500,7 @@ data_list_daily_2 <- list(
 )
 
 data_list_daily_tu_ntu <- list(
-    nutcrackin = joined_df4$nutcrackin,
+    nutcracking = joined_df4$nutcracking,
     id = joined_df4$id,
     grid_id_follow = joined_df4$grid_id,# real grid id from follow, mising cell 15 cause no monkeys went there
     grid_id_follow_dummy = as.integer(as.factor(joined_df4$grid_id)),# had to reassign ids so indexing works finwe with ulam
@@ -500,11 +524,16 @@ data_list_daily_tu_ntu <- list(
 ###arrive and leave
 str(blah)
 blah_zero <- blah[blah$minute==0,]
+ss1 <- which(blah_zero$X1st_strike_min.1 !=1 | blah_zero$X1st_strike_min.1=="NA")
+blah_zero <- blah_zero[ss1,]
+unique(blah_zero$X1st_strike_min.1)
+sort(unique(blah_zero$grid_id))
+sort(unique(blah_zero$id))
 
 data_list_height_zero <- list(
     height_dm=as.integer(blah_zero$height*10),
     height_m=blah_zero$height,
-    nutcrackin=blah_zero$nutcracking,
+    nutcracking=blah_zero$nutcracking,
     id = blah_zero$id,
     follow_index = blah_zero$follow_index,
     day_index = blah_zero$day_index,

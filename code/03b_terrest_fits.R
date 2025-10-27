@@ -120,8 +120,8 @@ sort(unique(data_list_height$heights))
 m_h2 <- ulam(
   alist(
     height_dm ~ dzipois( p , lambda ),
-    logit(p) <- ap + a_id[id,1] + (bNp + a_id[id,3])*nutcrackin ,
-    log(lambda) <- al + a_id[id,2] + (bNl + a_id[id,4])*nutcrackin ,
+    logit(p) <- ap + a_id[id,1] + (bNp + a_id[id,3])*nutcracking ,
+    log(lambda) <- al + a_id[id,2] + (bNl + a_id[id,4])*nutcracking ,
     # adaptive priors - non-centered
     transpars> matrix[id,4]:a_id <-
       compose_noncentered( sigma_id , L_Rho_id , z_id ),
@@ -245,8 +245,8 @@ sort(unique(data_list_height$heights))
 m_h2 <- ulam(
   alist(
     height_dm ~ dzipois( p , lambda ),
-    logit(p) <- ap + a_id[id,1] + (bNp + a_id[id,3])*nutcrackin ,
-    log(lambda) <- al + a_id[id,2] + (bNl + a_id[id,4])*nutcrackin ,
+    logit(p) <- ap + a_id[id,1] + (bNp + a_id[id,3])*nutcracking ,
+    log(lambda) <- al + a_id[id,2] + (bNl + a_id[id,4])*nutcracking ,
     # adaptive priors - non-centered
     transpars> matrix[id,4]:a_id <-
       compose_noncentered( sigma_id , L_Rho_id , z_id ),
@@ -339,8 +339,8 @@ mzag_2 <- ulam(
     alist(
         height_m|height_m==0 ~ custom( bernoulli_lpmf(1|p) ) ,
         height_m|height_m>0 ~ custom( bernoulli_lpmf(0|p) + gamma_lpdf( height_m | mu/scale , 1/scale) ) ,
-        logit(p) <- ap + a_id[id,1] + (bNp + a_id[id,3])*nutcrackin ,
-        log(mu) <- al + a_id[id,2] + (bNl + a_id[id,4])*nutcrackin ,
+        logit(p) <- ap + a_id[id,1] + (bNp + a_id[id,3])*nutcracking ,
+        log(mu) <- al + a_id[id,2] + (bNl + a_id[id,4])*nutcracking ,
         # adaptive priors - non-centered
         transpars> matrix[id,4]:a_id <-
             compose_noncentered( sigma_id , L_Rho_id , z_id ),
@@ -364,8 +364,8 @@ mzag_3 <- ulam(
     alist(
         height_m|height_m==0 ~ custom( bernoulli_lpmf(1|p) ) ,
         height_m|height_m>0 ~ custom( bernoulli_lpmf(0|p) + gamma_lpdf( height_m | mu/scale , 1/scale) ) ,
-        logit(p) <- ap + a_id[id,1] + a_fz[follow_index] + (bNp + a_id[id,3])*nutcrackin ,
-        log(mu) <- al + a_id[id,2] + a_fg[follow_index] + (bNl + a_id[id,4])*nutcrackin,
+        logit(p) <- ap + a_id[id,1] + a_fz[follow_index] + (bNp + a_id[id,3])*nutcracking ,
+        log(mu) <- al + a_id[id,2] + a_fg[follow_index] + (bNl + a_id[id,4])*nutcracking,
         # adaptive priors - non-centered
         transpars> matrix[id,4]:a_id <-
             compose_noncentered( sigma_id , L_Rho_id , z_id ),
@@ -493,8 +493,8 @@ mzag_6 <- ulam(
     alist(
         height_m|height_m==0 ~ custom( bernoulli_lpmf(1|p) ) ,
         height_m|height_m>0 ~ custom( bernoulli_lpmf(0|p) + gamma_lpdf( height_m | mu/scale , 1/scale) ) ,
-        logit(p) <- ap + a_id[id,1] + a_g22[cell_id_index,1] + (bNp + a_id[id,3] + a_g22[cell_id_index,3])*nutcrackin,
-        log(mu) <- al + a_id[id,2] + a_g22[cell_id_index,2] + (bNl + a_id[id,4] + a_g22[cell_id_index,4])*nutcrackin,
+        logit(p) <- ap + a_id[id,1] + a_g22[cell_id_index,1] + (bNp + a_id[id,3] + a_g22[cell_id_index,3])*nutcracking,
+        log(mu) <- al + a_id[id,2] + a_g22[cell_id_index,2] + (bNl + a_id[id,4] + a_g22[cell_id_index,4])*nutcracking,
         # adaptive priors - non-centered
         transpars> matrix[cell_id_index,4]:a_g22 <-
             compose_noncentered( sigma_g22 , L_Rho_g22 , z_g22 ),
@@ -525,8 +525,8 @@ mzag_7 <- ulam(
     alist(
         height_m|height_m==0 ~ custom( bernoulli_lpmf(1|p) ) ,
         height_m|height_m>0 ~ custom( bernoulli_lpmf(0|p) + gamma_lpdf( height_m | mu/scale , 1/scale) ) ,
-        logit(p) <- ap + a_id[id,1] + a_g22[cell_id_index,1] + a_g110[grid_id_follow_dummy,1] + (bNp + a_id[id,3] + a_g22[cell_id_index,3] + a_g110[grid_id_follow_dummy,3])*nutcrackin,
-        log(mu) <- al + a_id[id,2] + a_g22[cell_id_index,2] + a_g110[grid_id_follow_dummy,2]+ (bNl + a_id[id,4] + a_g22[cell_id_index,4] + a_g110[grid_id_follow_dummy,4])*nutcrackin,
+        logit(p) <- ap + a_id[id,1] + a_g22[cell_id_index,1] + a_g110[grid_id_follow_dummy,1] + (bNp + a_id[id,3] + a_g22[cell_id_index,3] + a_g110[grid_id_follow_dummy,3])*nutcracking,
+        log(mu) <- al + a_id[id,2] + a_g22[cell_id_index,2] + a_g110[grid_id_follow_dummy,2]+ (bNl + a_id[id,4] + a_g22[cell_id_index,4] + a_g110[grid_id_follow_dummy,4])*nutcracking,
         # adaptive priors - non-centered
         transpars> matrix[cell_id_index,4]:a_g22 <-
             compose_noncentered( sigma_g22 , L_Rho_g22 , z_g22 ),
@@ -567,10 +567,10 @@ mzag_8 <- ulam(
         height_m|height_m==0 ~ custom( bernoulli_lpmf(1|p) ) ,
         height_m|height_m>0 ~ custom( bernoulli_lpmf(0|p) + gamma_lpdf( height_m | mu/scale , 1/scale) ) ,
         logit(p) <- ap + a_id[id,1] + a_g22[cell_id_index,1] + a_g110[grid_id_follow_dummy,1] 
-            + (bNp + a_id[id,3] + a_g22[cell_id_index,3] + a_g110[grid_id_follow_dummy,3])*nutcrackin
+            + (bNp + a_id[id,3] + a_g22[cell_id_index,3] + a_g110[grid_id_follow_dummy,3])*nutcracking
             + (bSp + a_id[id,5])*log_avg_stone_std +  (bPTp + a_id[id,7])*count_palm_std,
         log(mu) <- al + a_id[id,2] + a_g22[cell_id_index,2] + a_g110[grid_id_follow_dummy,2]
-            + (bNl + a_id[id,4] + a_g22[cell_id_index,4] + a_g110[grid_id_follow_dummy,4])*nutcrackin
+            + (bNl + a_id[id,4] + a_g22[cell_id_index,4] + a_g110[grid_id_follow_dummy,4])*nutcracking
             + (bSl + a_id[id,6])*log_avg_stone_std +  (bPTl + a_id[id,8])*count_palm_std,
         # adaptive priors - non-centered
         transpars> matrix[cell_id_index,4]:a_g22 <-
@@ -625,8 +625,8 @@ mzag_9 <- ulam(
     alist(
         height_m|height_m==0 ~ custom( bernoulli_lpmf(1|p) ) ,
         height_m|height_m>0 ~ custom( bernoulli_lpmf(0|p) + gamma_lpdf( height_m | mu/scale , 1/scale) ) ,
-        logit(p) <- ap + a_id[id,1]  + (bNp + a_id[id,3])*nutcrackin + (bSp + a_id[id,5])*log_avg_stone_std + (bPTp + a_id[id,7])*count_palm_std,
-        log(mu) <- al + a_id[id,2] + (bNl + a_id[id,4])*nutcrackin + (bSl + a_id[id,6])*log_avg_stone_std + (bPTl + a_id[id,8])*count_palm_std,
+        logit(p) <- ap + a_id[id,1]  + (bNp + a_id[id,3])*nutcracking + (bSp + a_id[id,5])*log_avg_stone_std + (bPTp + a_id[id,7])*count_palm_std,
+        log(mu) <- al + a_id[id,2] + (bNl + a_id[id,4])*nutcracking + (bSl + a_id[id,6])*log_avg_stone_std + (bPTl + a_id[id,8])*count_palm_std,
         # adaptive priors - non-centered
       
         transpars> matrix[id,8]:a_id <-
@@ -658,10 +658,10 @@ mzag_10 <- ulam(
     alist(
         height_m|height_m==0 ~ custom( bernoulli_lpmf(1|p) ) ,
         height_m|height_m>0 ~ custom( bernoulli_lpmf(0|p) + gamma_lpdf( height_m | mu/scale , 1/scale) ) ,
-        logit(p) <- ap + a_id[id,1]  + (bNp + a_id[id,3])*nutcrackin + (bSp + a_id[id,5])*log_avg_stone_std + (bPTp + a_id[id,7])*count_palm_std
-        + bSxNCp*log_avg_stone_std*nutcrackin + bPTxNCp*count_palm_std*nutcrackin,
-        log(mu) <- al + a_id[id,2] + (bNl + a_id[id,4])*nutcrackin + (bSl + a_id[id,6])*log_avg_stone_std + (bPTl + a_id[id,8])*count_palm_std
-        + bSxNCl*log_avg_stone_std*nutcrackin + bPTxNCl*count_palm_std*nutcrackin,
+        logit(p) <- ap + a_id[id,1]  + (bNp + a_id[id,3])*nutcracking + (bSp + a_id[id,5])*log_avg_stone_std + (bPTp + a_id[id,7])*count_palm_std
+        + bSxNCp*log_avg_stone_std*nutcracking + bPTxNCp*count_palm_std*nutcracking,
+        log(mu) <- al + a_id[id,2] + (bNl + a_id[id,4])*nutcracking + (bSl + a_id[id,6])*log_avg_stone_std + (bPTl + a_id[id,8])*count_palm_std
+        + bSxNCl*log_avg_stone_std*nutcracking + bPTxNCl*count_palm_std*nutcracking,
         # adaptive priors - non-centered
         
         transpars> matrix[id,8]:a_id <-
@@ -907,12 +907,12 @@ mzag_14 <- ulam(
         height_m|height_m==0 ~ custom( bernoulli_lpmf(1|p) ) ,
         height_m|height_m>0 ~ custom( bernoulli_lpmf(0|p) + gamma_lpdf( height_m | mu/scale , 1/scale) ) ,
         logit(p) <- ap + a_id[id,1] + a_g110[grid_id_follow_dummy,1] +
-            (bNp + a_id[id,3] + a_g110[grid_id_follow_dummy,3])*nutcrackin + 
+            (bNp + a_id[id,3] + a_g110[grid_id_follow_dummy,3])*nutcracking + 
             (bSp + a_id[id,5] + a_g110[grid_id_follow_dummy,5])*log_avg_stone_std +
             (bPTp + a_id[id,7]+ a_g110[grid_id_follow_dummy,7])*count_palm_std,
         
         log(mu) <- al + a_id[id,2] + a_g110[grid_id_follow_dummy,2] + 
-            (bNl + a_id[id,4] + a_g110[grid_id_follow_dummy,4])*nutcrackin + 
+            (bNl + a_id[id,4] + a_g110[grid_id_follow_dummy,4])*nutcracking + 
             (bSl + a_id[id,6] + a_g110[grid_id_follow_dummy,6])*log_avg_stone_std +
             (bPTl + a_id[id,8] + a_g110[grid_id_follow_dummy,8])*count_palm_std,
         
@@ -1033,7 +1033,7 @@ m1 <-ulam(
         transpars> matrix[40,40]: SIGMA_l <- cov_GPL2( Dmat110_full , etasq_l , rhosq_l , 0.01 ),
         c(etasq_p,rhosq_p,etasq_l,rhosq_l) ~ exponential(1)
         ) , 
-    data=data_list_height2, chains=6, cores=6, iter=1000   
+    data=data_list_height2, chains=4, cores=4, iter=2000   
 )
 
 m1a <- ulam(
@@ -1149,8 +1149,8 @@ m1d <- ulam(
         height_m|height_m==0 ~ custom( bernoulli_lpmf(1|p) ) , #likelihood loop for terrestrial Bernoulli
         height_m|height_m>0 ~ custom( bernoulli_lpmf(0|p) + gamma_lpdf( height_m | mu/scale , 1/scale) ) ,
 
-        logit(p) <- ap + a_id[id,1] + a_gp[grid_id_follow] + (bNp + a_id[id,3])*nutcrackin,
-        log(mu) <- al + a_id[id,2] + a_gl[grid_id_follow] + (bNl + a_id[id,4])*nutcrackin,
+        logit(p) <- ap + a_id[id,1] + a_gp[grid_id_follow] + (bNp + a_id[id,3])*nutcracking,
+        log(mu) <- al + a_id[id,2] + a_gl[grid_id_follow] + (bNl + a_id[id,4])*nutcracking,
         
         # priors
         al ~ dnorm( 1 , 2 ),
@@ -1185,8 +1185,8 @@ m1e <- ulam(
         height_m|height_m==0 ~ custom( bernoulli_lpmf(1|p) ) , #likelihood loop for terrestrial Bernoulli
         height_m|height_m>0 ~ custom( bernoulli_lpmf(0|p) + gamma_lpdf( height_m | mu/scale , 1/scale) ) ,
         
-        logit(p) <- ap + a_id[id,1] + a_gp[grid_id_follow] + (bNp + a_id[id,3])*nutcrackin + (bPTp + a_id[id,5])*count_palm_std,
-        log(mu) <- al + a_id[id,2] + a_gl[grid_id_follow] + (bNl + a_id[id,4])*nutcrackin + (bPTl + a_id[id,6])*count_palm_std,
+        logit(p) <- ap + a_id[id,1] + a_gp[grid_id_follow] + (bNp + a_id[id,3])*nutcracking + (bPTp + a_id[id,5])*count_palm_std,
+        log(mu) <- al + a_id[id,2] + a_gl[grid_id_follow] + (bNl + a_id[id,4])*nutcracking + (bPTl + a_id[id,6])*count_palm_std,
         
         # priors
         al ~ dnorm( 1 , 2 ),
@@ -1220,10 +1220,10 @@ m1f <- ulam(
         height_m|height_m==0 ~ custom( bernoulli_lpmf(1|p) ) , #likelihood loop for terrestrial Bernoulli
         height_m|height_m>0 ~ custom( bernoulli_lpmf(0|p) + gamma_lpdf( height_m | mu/scale , 1/scale) ) ,
         
-        logit(p) <- ap + a_id[id,1] + a_gp[grid_id_follow] + (bNp + a_id[id,3])*nutcrackin 
-        + (bPTp + a_id[id,5])*count_palm_std + (bNxPTp + a_id[id,7])*count_palm_std*nutcrackin,
-        log(mu) <- al + a_id[id,2] + a_gl[grid_id_follow] + (bNl + a_id[id,4])*nutcrackin 
-        + (bPTl + a_id[id,6])*count_palm_std +  (bNxPTl + a_id[id,8])*count_palm_std*nutcrackin,
+        logit(p) <- ap + a_id[id,1] + a_gp[grid_id_follow] + (bNp + a_id[id,3])*nutcracking 
+        + (bPTp + a_id[id,5])*count_palm_std + (bNxPTp + a_id[id,7])*count_palm_std*nutcracking,
+        log(mu) <- al + a_id[id,2] + a_gl[grid_id_follow] + (bNl + a_id[id,4])*nutcracking 
+        + (bPTl + a_id[id,6])*count_palm_std +  (bNxPTl + a_id[id,8])*count_palm_std*nutcracking,
         
         # priors
         al ~ dnorm( 1 , 2 ),

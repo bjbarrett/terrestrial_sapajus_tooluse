@@ -166,12 +166,28 @@ mapview(grid_22m)
     
   # Set the working directory
   # setwd("C:/Users/tativ/OneDrive/Doutorado_Spatial data/Terrestriality and tool use/data/")
-    
-  # Read data
-    heights_data <- read.csv("data/sertao_heights_2022-2023.csv")
-    focals_data <- st_read("data/sertao_focals_spatial/sertao_focals_2022-2023_shape.shp")
-    nutcracking_data <- st_read("data/sertao_nutcracking_spatial/sertao_nutcracking_2022-2023_partial_shape.shp")
 
+  ##########load in behavioral data
+  
+# Read data
+ # 15159 observatons of focal follows, and their height, follow length, focal follow id, and a yes/no nutcracking
+    heights_data <- read.csv("data/sertao_heights_2022-2023.csv") 
+# 5322 obsshape file of gps coordinates of focal follows, get clarity on focals begi
+    focals_data <- st_read("data/sertao_focals_spatial/sertao_focals_2022-2023_shape.shp")
+# 1030 obs of gps coordinates and timestamps and ids of crackers
+    nutcracking_data <- st_read("data/sertao_nutcracking_spatial/sertao_nutcracking_2022-2023_partial_shape.shp")
+# 2661 obse or focal id, crackerr, file, timestamp, and n_nuts and n_success
+    crack_new <- read.csv("data/Nut-cracking_focal_5min_all_focals.csv" )
+    crack_new <- crack_new[, c("timestamp", "nutcracking" , "X1st_arrival_ground" ,"X1st_strike_min" , "resource" , "n_nuts" , "fragmented" , "n_success", "X1st_strike_min")]
+# this is just the first of focals data
+focals_data$timestamp2 <- as_datetime(focals_data$timestamp)
+crack_new$timestamp2 <- mdy_hm(crack_new$timestamp)
+focals_data <- merge(focals_data, crack_new , by="timestamp2")
+focals_data$n_nuts <- ifelse(focals_data$nutcracking==0 , 0 , focals_data$n_nuts)
+focals_data$n_success <- ifelse(focals_data$nutcracking==0 , 0 , focals_data$n_success)
+
+#new data has how many nutcrtackings occured in each focal
+    
     mapview(focals_data)
     mapview(nutcracking_data)
     mapview(grid_22m) + mapview(focals_data) +  mapview(nutcracking_data, col.regions ="red")

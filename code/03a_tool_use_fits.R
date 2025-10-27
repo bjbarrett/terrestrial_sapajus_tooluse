@@ -5,7 +5,7 @@ set_ulam_cmdstan(TRUE) #set cmdstan to true
 
 m1 <- ulam(
   alist(
-    nutcrackin ~ binomial(1,p),
+    nutcracking ~ binomial(1,p),
     logit(p) <- ap ,
     ap ~ dnorm( 0 , 1 )
   ) , data=data_list , chains=4)
@@ -28,7 +28,7 @@ mean(focals_data_cropped$nutcrackin)
 # varying intercepts per individual
 m2 <- ulam(
   alist(
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-a_id[id],
     # fixed priors
     ap ~ dnorm( 0 , 1 ),
@@ -42,7 +42,7 @@ plot(precis( m1 , depth=2 ))
 #varying intercepts per individual and fixed effects palm
 m3 <- ulam(
   alist(
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-a_id[id] + bPT*count_palm_std,
     # fixed priors
     c(ap,bPT) ~ dnorm( 0 , 1 ),
@@ -56,7 +56,7 @@ plot(precis( m3 , depth=2 ))
 #varying intercepts per individual and fixed effects stone
 m4 <- ulam(
   alist(
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-a_id[id] + bS*log_avg_stone_std ,
     # fixed priors
     c(ap,bS) ~ dnorm( 0 , 1 ),
@@ -71,7 +71,7 @@ precis( m4 , depth=2 )
 
 m5 <- ulam(
   alist(
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-a_id[id] + bPT*count_palm_std + bS*log_avg_stone_std ,
     # fixed priors
     c(ap,bS,bPT) ~ dnorm( 0 , 1 ),
@@ -86,7 +86,7 @@ precis( m5 , depth=2 )
 
 m6 <- ulam(
   alist(
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-a_id[id] + bPT*count_palm_std + bS*log_avg_stone_std 
     + bPTxS*count_palm_std*avg_stone_std,
     # fixed priors
@@ -97,13 +97,13 @@ m6 <- ulam(
   ) , data=data_list_daily , chains=4 , cores=4 , log_lik=TRUE)
 plot(precis( m6 , depth=2 ))
 precis( m6 , depth=2 )
-compare(m1,m2,m3,m4,m5,m6)
+compare(m2,m3,m4,m5,m6)
 
 ######### varying effects of slopes per individual
 set.seed(384)
 m7 <- ulam(
   alist(
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-ap + a_id[id,1] +  (bPT + a_id[id,2])*count_palm_std,
     # adaptive priors - non-centered
     transpars> matrix[id,2]:a_id <-
@@ -123,7 +123,7 @@ precis(m7 , depth=3)
 set.seed(482)
 m8 <- ulam(
   alist(
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-ap + a_id[id,1] +  (bS + a_id[id,2])*log_avg_stone_std ,
     # adaptive priors - non-centered
     transpars> matrix[id,2]:a_id <-
@@ -143,7 +143,7 @@ precis(m8 , depth=3)
 set.seed(183)
 m9 <- ulam(
   alist(
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-ap + a_id[id,1] +  (bS + a_id[id,2])*log_avg_stone_std +  (bPT + a_id[id,3])*count_palm_std,
     # adaptive priors - non-centered
     transpars> matrix[id,3]:a_id <-
@@ -163,7 +163,7 @@ precis(m9 , depth=3)
 set.seed(345)
 m10 <- ulam(
   alist(
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-ap + a_id[id,1] +  (bS + a_id[id,2])*log_avg_stone_std +
       (bPT + a_id[id,3])*count_palm_std + (bPTxS + a_id[id,4])*log_avg_stone_std*count_palm_std,
     # adaptive priors - non-centered
@@ -200,7 +200,7 @@ dpred <- list(
 link2 <- link(m10, data=dpred , replace=list(id=a_id_z) )
 
 str(link2)
-plot(data_list_daily$nutcrackin ~ data_list_daily$log_avg_stone_std , pch="|" , 
+plot(data_list_daily$nutcracking ~ data_list_daily$log_avg_stone_std , pch="|" , 
      col=col.alpha(rangi2,0.01) , ylab="probability of nut cracking" , 
      xlab= "log stone density (standardized)")
 pred_median <- apply(link2 , 2 , median)
@@ -212,7 +212,7 @@ for (j in sample( c(1:2000) , 100) ){
 #axis( 1 , at= ( seq(from=0 , to=0.45 , by=0.05) - mean(dc$c70))/sd(dc$c70) , labels= seq(from=0 , to=0.45 , by=0.05) )
 
 #plot daily id preds
-plot(data_list_daily$nutcrackin ~ data_list_daily$log_avg_stone_std , pch="|" , 
+plot(data_list_daily$nutcracking ~ data_list_daily$log_avg_stone_std , pch="|" , 
      col=col.alpha(rangi2,0.01) , ylab="probability of nut cracking" , 
      xlab= "log stone density (standardized)")
 pred_median <- apply(link2 , 2 , median)
@@ -231,7 +231,7 @@ for ( i in 1:max(data_list_daily$id)){
 
 ####nut cracking and palm trees
 
-plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
+plot(data_list_daily$nutcracking ~ data_list_daily$count_palm_std ,
      pch=19 , col=col.alpha("green4",0.004), ylab="probability of nut cracking",
      xlab= "palm tree density/ 22 m^2 grid (standardized)")
 
@@ -253,7 +253,7 @@ for (j in sample( c(1:2000) , 100) ){
 
 
 ## per id plot
-plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
+plot(data_list_daily$nutcracking ~ data_list_daily$count_palm_std ,
      pch=19 , col=col.alpha("green4",0.004), ylab="probability of nut cracking",
      xlab= "palm tree density/ 22 m^2 grid (standardized)")
 
@@ -275,7 +275,7 @@ par( mfrow=c(1,3))
 stone_samp <- c(-2,0,2)
 
 for(j in 1:3){
-  plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
+  plot(data_list_daily$nutcracking ~ data_list_daily$count_palm_std ,
        pch=19 , col=col.alpha("green4",0.004), ylab="probability of nut cracking",
        xlab= "palm tree density/ 22 m^2 grid (standardized)" , main=stone_samp[j] )
   
@@ -306,7 +306,6 @@ str(post)
 ##### lets vctorize ST abundance
 
 
-
 m8me <- ulam(
   alist(
     #stone model
@@ -317,7 +316,7 @@ m8me <- ulam(
     a_grid[stone_grid_index] ~ dnorm( 0 , sigma_stone ), #priovarying effects centered on mean
     sigma_stone ~ dexp(1), #p
    #nutcracking model
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-ap + a_id[id,1] +  (bS + a_id[id,2])*a_grid[grid_id_follow] , #use the posterior of corresponding grid as predictor
     # adaptive priors - non-centered
     transpars> matrix[id,2]:a_id <-
@@ -350,7 +349,7 @@ m8gp <- ulam(
             transpars> matrix[40,40]: L_SIGMA <<- cholesky_decompose( SIGMA ),
             transpars> matrix[40,40]: SIGMA <- cov_GPL2( Dmat110 , etasq , rhosq , 0.01 ),
             #nutcracking model
-            nutcrackin ~ dbinom(1, p ),
+            nutcracking ~ dbinom(1, p ),
             logit(p) <-ap + a_id[id,1] +  (bS + a_id[id,2])*a_grid[grid_id_follow] , #use the posterior of corresponding grid as predictor
             # adaptive priors - non-centered
             transpars> matrix[id,2]:a_id <-
@@ -384,7 +383,7 @@ lines( x_seq , pmcov_mu , lwd=2 )
 # plot 60 functions sampled from posterior
 for ( i in 1:50 )
     curve( post$etasq[i]*exp(-post$rhosq[i]*x^2) , add=TRUE ,
-           col=col.alpha("black",0.3) )
+           col=col.alpha("black",0.14) )
 
 
 
@@ -399,7 +398,7 @@ m9me <- ulam(
     a_grid[stone_grid_index] ~ dnorm( 0 , sigma_stone ), #priovarying effects centered on mean
     sigma_stone ~ dexp(1), #p
     #nutcracking model
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-ap + a_id[id,1] +  (bS + a_id[id,2])*a_grid[grid_id_follow] +  (bPT + a_id[id,3])*count_palm_std,
     # adaptive priors - non-centered
     transpars> matrix[id,3]:a_id <-
@@ -424,7 +423,7 @@ median(post$a_bar)
 str(post)
 png(file = "plots/p_nc_m9me.png") 
 
-    plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
+    plot(data_list_daily$nutcracking ~ data_list_daily$count_palm_std ,
          pch=19 , col=col.alpha("green4",0.004), ylab="probability of nut cracking",
          xlab= "palm tree density/ 22 m^2 grid (standardized)")
     
@@ -449,7 +448,7 @@ dev.off()
 ## per id plot
 png(file = "plots/p_nc_all_inds_m9me.png") 
     
-    plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
+    plot(data_list_daily$nutcracking ~ data_list_daily$count_palm_std ,
          pch=19 , col=col.alpha("green4",0.004), ylab="probability of nut cracking",
          xlab= "palm tree density/ 22 m^2 grid (standardized)")
     
@@ -483,7 +482,7 @@ png(file = "plots/stone_m9me.png")
     
     p_raw <- sapply( stone_seq, function(x) p_link_stone(x) )
     
-    plot(data_list_daily$nutcrackin ~ data_list_daily$log_avg_stone_std ,
+    plot(data_list_daily$nutcracking ~ data_list_daily$log_avg_stone_std ,
          pch=19 , col=col.alpha("darkslateblue",0.004), ylab="probability of nut cracking",
          xlab= "log stone density/ 110 m^2 grid (standardized)")
     
@@ -501,15 +500,15 @@ m_tree_gp <- ulam(
         count_palm_all ~ dpois( lambda_palm ), #define poisson likelihood
         log(lambda_palm) <-  a_bar_palm + a_cell[cell_id_all],
         #priors
-        a_bar_palm ~ dnorm( 0 , 2 ), #mean effect on logscale
-        etasq_palm ~ dexp( 2 ),
-        rhosq_palm ~ dexp( 0.5 ),
+        a_bar_palm ~ dnorm( 0 , 1.2 ), #mean effect on logscale
+        etasq_palm ~ dexp( 1 ),
+        rhosq_palm ~ dexp( 1 ),
         # non-centered Gaussian Process prior
         transpars> vector[1000]: a_cell <<- L_SIGMA_PALM * z_palm,
         vector[1000]: z_palm ~ normal( 0 , 1 ),
         transpars> matrix[1000,1000]: L_SIGMA_PALM <<- cholesky_decompose( SIGMA_PALM ),
         transpars> matrix[1000,1000]: SIGMA_PALM <- cov_GPL2( Dmat22 , etasq_palm , rhosq_palm , 0.01 )
-) , data=data_list_daily_2 , chains=5 , cores=5, log_lik=FALSE, iter=1000,  pars_omit = 'z_id' , control=list(adapt_delta=0.9) , cmdstan=TRUE , threads=5 , refresh=10)
+) , data=data_list_daily_2 , chains=4 , cores=4, log_lik=FALSE, iter=1000,  pars_omit = 'z_id' , control=list(adapt_delta=0.9) , cmdstan=TRUE , threads=5 , refresh=10)
         
 set.seed(183)
 m9gp <- ulam(
@@ -527,7 +526,7 @@ m9gp <- ulam(
         transpars> matrix[40,40]: L_SIGMA <<- cholesky_decompose( SIGMA ),
         transpars> matrix[40,40]: SIGMA <- cov_GPL2( Dmat110 , etasq , rhosq , 0.01 ),
         #nutcracking model
-        nutcrackin ~ dbinom(1, p ),
+        nutcracking ~ dbinom(1, p ),
         logit(p) <-ap + a_id[id,1] +  (bS + a_id[id,2])*a_grid[grid_id_follow] +  (bPT + a_id[id,3])*count_palm_std,
         # adaptive priors - non-centered
         transpars> matrix[id,3]:a_id <-
@@ -555,7 +554,7 @@ stone_seq <-  seq(from=min(data_list_daily_2$log_avg_stone_std) ,
 
 p_raw <- sapply( stone_seq, function(x) p_link_stone(x) )
 
-plot(data_list_daily_2$nutcrackin ~ data_list_daily_2$log_avg_stone_std ,
+plot(data_list_daily_2$nutcracking ~ data_list_daily_2$log_avg_stone_std ,
      pch=19 , col=col.alpha("darkslateblue",0.004), ylab="probability of nut cracking",
      xlab= "log stone density/ 110 m^2 grid (standardized)")
 
@@ -578,7 +577,7 @@ m10me <- ulam(
     a_grid[stone_grid_index] ~ dnorm( 0 , sigma_stone ), #priovarying effects centered on mean
     sigma_stone ~ dexp(1), #p
     #nutcracking model
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-ap + a_id[id,1] +  (bS + a_id[id,2])*a_grid[grid_id_follow] +
       (bPT + a_id[id,3])*count_palm_std + (bPTxS + a_id[id,4])*a_grid[grid_id_follow]*count_palm_std,
     # adaptive priors - non-centered
@@ -607,7 +606,7 @@ a_grid_s_z <- matrix(0,2000,length(unique(data_list_daily$stone_grid_index))) #n
 post <- extract.samples(m10me)
 median(post$a_bar)
 str(post)
-plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
+plot(data_list_daily$nutcracking ~ data_list_daily$count_palm_std ,
      pch=19 , col=col.alpha("green4",0.004), ylab="probability of nut cracking",
      xlab= "palm tree density/ 22 m^2 grid (standardized)")
 
@@ -630,7 +629,7 @@ for (j in sample( c(1:2000) , 100) ){
 
 
 ## per id plot
-plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
+plot(data_list_daily$nutcracking ~ data_list_daily$count_palm_std ,
      pch=19 , col=col.alpha("green4",0.004), ylab="probability of nut cracking",
      xlab= "palm tree density/ 22 m^2 grid (standardized)")
 
@@ -659,7 +658,7 @@ m11me <- ulam(
         a_grid[stone_grid_index] ~ dnorm( 0 , sigma_stone ), #priovarying effects centered on mean
         sigma_stone ~ dexp(1), #p
         #nutcracking model
-        nutcrackin ~ dbinom(1, p ),
+        nutcracking ~ dbinom(1, p ),
         logit(p) <-ap + a_id[id,1] + a_g[grid_id_follow_dummy] + (bS + a_id[id,2])*a_grid[grid_id_follow] +
             (bPT + a_id[id,3])*count_palm_std + (bPTxS + a_id[id,4])*a_grid[grid_id_follow]*count_palm_std,
         # adaptive priors - non-centered
@@ -687,7 +686,7 @@ m12me <- ulam(
         a_grid[stone_grid_index] ~ dnorm( 0 , sigma_stone ), #priovarying effects centered on mean
         sigma_stone ~ dexp(1), #p
         #nutcracking model
-        nutcrackin ~ dbinom(1, p ),
+        nutcracking ~ dbinom(1, p ),
         logit(p) <- a_id[id,1] + (bS + a_id[id,2])*a_grid[grid_id_follow] +
             (bPT + a_id[id,3])*count_palm_std + (bPTxS + a_id[id,4])*a_grid[grid_id_follow]*count_palm_std
         + bSEX[sex_index],
@@ -711,7 +710,7 @@ precis(m12me , depth=2)
 
 m6 <- ulam(
   alist(
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-a_id[id] + bPT*count_palm_std + bS*log_avg_stone_std 
     + bPTxS*count_palm_std*avg_stone_std,
     # fixed priors
@@ -728,7 +727,7 @@ compare(m1,m2,m3,m4,m5,m6)
 set.seed(384)
 m7e <- ulam(
   alist(
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-ap + a_id[id,1] +  (bPT + a_id[id,2])*count_palm_std + b_exp*log_follow_length,
     # adaptive priors - non-centered
     transpars> matrix[id,2]:a_id <-
@@ -748,7 +747,7 @@ precis(m7e , depth=3)
 set.seed(482)
 m8e <- ulam(
   alist(
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-ap + a_id[id,1] +  (bS + a_id[id,2])*log_avg_stone_std + b_exp*log_follow_length,
     # adaptive priors - non-centered
     transpars> matrix[id,2]:a_id <-
@@ -768,7 +767,7 @@ precis(m8 , depth=3)
 set.seed(183)
 m9e <- ulam(
   alist(
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-ap + a_id[id,1] +  (bS + a_id[id,2])*log_avg_stone_std +  (bPT + a_id[id,3])*count_palm_std + b_exp*log_follow_length,
     # adaptive priors - non-centered
     transpars> matrix[id,3]:a_id <-
@@ -789,7 +788,7 @@ precis(m9e , depth=3)
 set.seed(345)
 m10e <- ulam(
   alist(
-    nutcrackin ~ dbinom(1, p ),
+    nutcracking ~ dbinom(1, p ),
     logit(p) <-ap + a_id[id,1] +  (bS + a_id[id,2])*log_avg_stone_std +
       (bPT + a_id[id,3])*count_palm_std + (bPTxS + a_id[id,4])*log_avg_stone_std*count_palm_std
     + b_exp*log_follow_length,
@@ -823,7 +822,7 @@ dpred <- list(
 link2 <- link(m10e, data=dpred , replace=list(id=a_id_z) )
 
 str(link2)
-plot(data_list_daily$nutcrackin ~ data_list_daily$log_avg_stone_std , pch="|" , 
+plot(data_list_daily$nutcracking ~ data_list_daily$log_avg_stone_std , pch="|" , 
      col=col.alpha(rangi2,0.01) , ylab="probability of nut cracking" , 
      xlab= "log stone density (standardized)")
 pred_median <- apply(link2 , 2 , median)
@@ -835,7 +834,7 @@ for (j in sample( c(1:2000) , 100) ){
 #axis( 1 , at= ( seq(from=0 , to=0.45 , by=0.05) - mean(dc$c70))/sd(dc$c70) , labels= seq(from=0 , to=0.45 , by=0.05) )
 
 #plot daily id preds
-plot(data_list_daily$nutcrackin ~ data_list_daily$log_avg_stone_std , pch="|" , 
+plot(data_list_daily$nutcracking ~ data_list_daily$log_avg_stone_std , pch="|" , 
      col=col.alpha(rangi2,0.01) , ylab="probability of nut cracking" , 
      xlab= "log stone density (standardized)")
 pred_median <- apply(link2 , 2 , median)
@@ -855,7 +854,7 @@ for ( i in 1:max(data_list_daily$id)){
 
 ####nut cracking and palm trees
 
-plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
+plot(data_list_daily$nutcracking ~ data_list_daily$count_palm_std ,
      pch=19 , col=col.alpha("green4",0.004), ylab="probability of nut cracking",
      xlab= "palm tree density/ 22 m^2 grid (standardized)")
 
@@ -878,7 +877,7 @@ for (j in sample( c(1:2000) , 100) ){
 
 
 ## per id plot
-plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
+plot(data_list_daily$nutcracking ~ data_list_daily$count_palm_std ,
      pch=19 , col=col.alpha("green4",0.004), ylab="probability of nut cracking",
      xlab= "palm tree density/ 22 m^2 grid (standardized)")
 
@@ -901,7 +900,7 @@ par( mfrow=c(1,3))
 stone_samp <- c(-2,0,2)
 
 for(j in 1:3){
-  plot(data_list_daily$nutcrackin ~ data_list_daily$count_palm_std ,
+  plot(data_list_daily$nutcracking ~ data_list_daily$count_palm_std ,
        pch=19 , col=col.alpha("green4",0.004), ylab="probability of nut cracking",
        xlab= "palm tree density/ 22 m^2 grid (standardized)" , main=stone_samp[j] )
   
