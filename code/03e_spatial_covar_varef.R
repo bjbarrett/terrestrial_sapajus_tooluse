@@ -22,48 +22,7 @@ sort(unique(data_whoa$grid_id_follow))
 
 str(data_whoa)
 
-# m_cov <- ulam(
-#     alist(
-#             n_nuts ~ dzipois( p , lambda ),
-#             logit(p) <- apn + a_id[id,1] + a_g110[grid_id_follow_dummy,1],
-#             log(lambda) <- aln + a_id[id,2] +  a_g110[grid_id_follow_dummy,2] + log_follow_length,
-#             
-#             height_m|height_m==0 ~ custom( bernoulli_lpmf(1|p) ) ,
-#             height_m|height_m>0 ~ custom( bernoulli_lpmf(0|p) + gamma_lpdf( height_m | mu/scale , 1/scale) ) ,
-#             logit(p) <- aph + a_id[gid,3]  +  a_g110[grid_id_follow_dummy_h,3] + (bnp + a_id[gid,4]  +  a_g110[grid_id_follow_dummy_h,4] )*nutcracking,
-#             log(mu) <- alh + a_id[gid,5] +  a_g110[grid_id_follow_dummy_h,5] + (bnl + a_id[gid,6]  +  a_g110[grid_id_follow_dummy_h,6])*nutcracking,
-#             
-#             
-#             # adaptive priors - non-centered
-#             transpars> matrix[id,6]:a_id <-
-#                 compose_noncentered( sigma_id , L_Rho_id , z_id ),
-#             matrix[6,id]:z_id ~ normal( 0 , 1 ),
-#             
-#             transpars> matrix[grid_id_follow,6]:a_g110 <-
-#                 compose_noncentered( sigma_gid , L_Rho_gid , z_gid ),
-#             
-#             matrix[6,grid_id_follow]:z_gid ~ normal( 0 , 1 ),
-#             # fixed priors
-#             c(apn,aln,aph,alh,bnl,bnp) ~ dnorm( 0 , 1 ),
-#             vector[6]:sigma_id ~ dexp(1),
-#             vector[6]:sigma_gid ~ dexp(1),
-#             cholesky_factor_corr[6]:L_Rho_id ~ lkj_corr_cholesky( 4 ),
-#             cholesky_factor_corr[6]:L_Rho_gid ~ lkj_corr_cholesky( 4 ),
-#             scale ~dexp(1),
-#             # compute ordinary correlation matrixes from Cholesky factors
-#             gq> matrix[6,6]:Rho_id <<- Chol_to_Corr(L_Rho_id),
-#             gq> matrix[6,6]:Rho_gid <<- Chol_to_Corr(L_Rho_gid)
-#             
-#         
-#     ) , data=data_whoa, chains=4 , cores=4, log_lik=FALSE, iter=2000 , control=list(adapt_delta=0.95))
-
-    
-scode <- "
-
-"
-mod <- cmdstan_model(scode)
-
-file <- file.path("multivargrid.stan")
+file <- file.path("code/multivargrid.stan")
 mod <- cmdstan_model(file , cpp_options = list(stan_threads = TRUE) )
 fit_multi <- mod$sample(
     data = data_whoa,
